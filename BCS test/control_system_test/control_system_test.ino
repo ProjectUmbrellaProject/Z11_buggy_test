@@ -15,7 +15,8 @@ bool forward, objectDetected, stringComplete, gantryDetected, onHalfSpeed;
 
 // This is the main Pixy object
 Pixy pixy;
-static int i = 0; //triggers the object detection pixy every 50 loops
+static int frameCounter = 0;
+const int minimumDetection = 4; //Determines how many times a colour must be detected in 10 frames before the buggy responds
 
 
 void setup() {
@@ -111,29 +112,29 @@ void moveCommand(int command){
       
         break;
 
-       //half speed
+       //Reduce speed
        case 2:
         if(!onHalfSpeed){
-        motorPower = motorPower/2;
-        analogWrite(speedPin, motorPower);
-        Serial.print("~8");
-        Serial.println(motorPower);
-        onHalfSpeed = true;
+          motorPower = motorPower/2;
+          analogWrite(speedPin, motorPower);
+          Serial.print("~8");
+          Serial.println(motorPower);
+          onHalfSpeed = true;
         }
         break;
       
-      //resume full speed
+      //Resume full speed
       case 3:
         if(onHalfSpeed){
-        onHalfSpeed = false;
-        motorPower = 2* motorPower;
-        analogWrite(speedPin, motorPower);
-        Serial.print("~8");
-        Serial.println(motorPower);
+          onHalfSpeed = false;
+          motorPower = 2* motorPower;
+          analogWrite(speedPin, motorPower);
+          Serial.print("~8");
+          Serial.println(motorPower);
         }
         break;
 
-      //Turn right on sign
+      //Turn right
       case 4:
         delay(200);
         digitalWrite(leftMotorPin, HIGH);
@@ -141,6 +142,7 @@ void moveCommand(int command){
         digitalWrite(leftMotorPin, LOW);
         break;
 
+      //Turn left
       case 5:
         delay(200);
         digitalWrite(rightMotorPin, HIGH);
@@ -220,21 +222,14 @@ void serialEvent() {
 }
 
 void detectSigns(){
-  int j;
-  uint16_t blocks;  
-  char buf[32];
+  uint16_t blocks = pixy.getBlocks();
+  int detections[4] = {0, 0, 0, 0};
   
-  // grab blocks!
-  blocks = pixy.getBlocks();
-  
-  
-  if (blocks > 0)
-  {
-    i++;
-    if (i%50==0)
-    {
-      int closestY = 0;
-      int closestID;
+  if (blocks > 0){
+    frameCounter++;
+
+    //Check after every 10 frames (frame rate is 50fps)
+    if (frameCounter%10==0) {
        
        /*for(int k = 0; k < blocks; k++){
           if(pixy.blocks[k].y > closestY){
@@ -242,12 +237,14 @@ void detectSigns(){
             closestID = k;
           }
        }*/
+      for (int i = 0; i < blocks; i++){
+        detections[pixy.blocks[i].signature - 1]++; //Add to the counter for how many times the colour has been detected
 
+        if (detections[pixy.blocks[i].signature - 1] > minimumDetection)
+        //do stuff
+        
+      }
        
-
-       Serial.print("closest is ");
-       Serial.println(closestY);
-            
        moveCommand(pixy.blocks[closestID].signature +1);
        
       }
