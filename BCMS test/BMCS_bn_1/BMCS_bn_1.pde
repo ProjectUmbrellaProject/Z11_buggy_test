@@ -4,14 +4,12 @@ import processing.serial.*;
 
 Serial port;
 Meter motorOutput;
-int counter = 0;
-int motorValue;
-boolean callBack, controlToggle, stopped, moving, obstacleDetected;
+int counter = 0, currentMotorValue, previousTime, currentDetection;
+boolean controlToggle, stopped, moving, obstacleDetected;
 ControlP5 cp5;
 
-Toggle motorState;
-
 void setup(){
+  frameRate(60);
   size(1280, 720);
   background(255);
   cp5 = new ControlP5(this);
@@ -19,10 +17,10 @@ void setup(){
   stopped = true;
   moving = false;
   obstacleDetected = false;
-  motorValue = 0;
+  currentMotorValue = 0;
+  currentDetection = 0;
   
   motorOutput = new Meter(this, int(pixelWidth*0.66), int(pixelHeight*0.64), true);
-
   
   PImage[] imgs = {loadImage("Assets/go.png"),loadImage("Assets/stop.png")};
   cp5.addToggle("controlToggle")
@@ -47,14 +45,26 @@ void setup(){
   else
     print("Warning: No Xbee detected");
   
-  
-  
-  callBack = false;
+  previousTime = millis();
   
 }
 
 
 void draw(){
+  image(loadImage("Assets/map.png"), 0, 0);
+  
+  //The map elements flash every half second
+  if (millis() - previousTime < 500){
+    highLightLocation();
+  }
+  else if (millis() - previousTime > 500 && millis() - previousTime < 1000){
+    image(loadImage("Assets/map.png"), 0, 0);
+
+  }
+  else if (millis() - previousTime > 1000)
+    previousTime = millis();
+
+  
   if (stopped)
       image(loadImage("Assets/stopped.png"), 0, 520);
   else if (moving)
@@ -62,7 +72,7 @@ void draw(){
   else if (obstacleDetected)
       image(loadImage("Assets/obstacleDetected.png"), 0, 520);
   
-    motorOutput.updateMeter(motorValue);
+    motorOutput.updateMeter(currentMotorValue);
 }
 
 void serialEvent(Serial p){
@@ -76,8 +86,6 @@ void serialEvent(Serial p){
      if ((receivedString.trim()).equals("obstacle"))
        cp5.getController("controlToggle").setValue(0);
      
-     callBack = true;
-     
    }
    
    p.clear();
@@ -90,43 +98,76 @@ void commandInterpreter(String command){
     
     case '~':
     
-      switch (command.charAt(1)){
-        case '5':
+      switch (command.substring(1,3).trim()){
+        //6: Obstacle detected
+        case "6":
           obstacleDetected = true;
           stopped = false;
           moving = false;
         break;
         
-        case '6':
-          print("Unrecognised command recieved by buggy");
-        break;
-        
-        case '7':
-          print("Gantry detected");
-          obstacleDetected = false;
-          stopped = true;
-          moving = false;
+        //7: Gantry XX detected
+        case "7":
+          currentDetection = Integer.valueOf((command.substring(3)).trim());     
           
         break;
         
-        case '8':
-          motorValue = Integer.valueOf((command.substring(2)).trim());
+        //8: Motor power set to XX
+        case "8":
+          currentMotorValue = Integer.valueOf((command.substring(3)).trim());
           
         break;
             
-        case '9':
+        //9: Move command confirmation
+        case "9":
           obstacleDetected = false;
           stopped = false;
           moving = true;
           
         break;
         
-        case '4':
+        //10: Stop command confirmation
+        case "10":
           obstacleDetected = false;
           stopped = true;
           moving = false;
           
          break;
+         
+        //11: Detected colour ID XX
+        case "11":
+        
+          //There are duplicates of the slow down and speed up signs. In order to determine which of the two signs the buggy encoutered the previous detection must be considered.
+          switch (Integer.valueOf((command.substring(3)).trim())){
+            //Red: Slow down sign
+            case 1:
+              if (currentDetection == 3)
+                currentDetection = 5;
+              else if (currentDetection == 6)
+                currentDetection = 7;
+            break;
+            
+            //Green: Speed up sign
+            case 2:
+              if (currentDetection == 5)
+                currentDetection = 6;
+              else if (currentDetection == 7)
+                currentDetection = 8;
+            break;
+            
+            //Yellow: Take fork
+            case 3:
+              currentDetection = 4;
+              
+            break;     
+          }
+          
+        break;
+        
+        //20: Unknown command
+        case "20":
+          print("Unrecognised command recieved by buggy");
+        break;
            
   }
   break;
@@ -134,7 +175,8 @@ void commandInterpreter(String command){
 }
 
 public void controlEvent(ControlEvent theEvent){
-  
+  //Getting sick of that annoying error on launch...
+  if (millis() > 1000){
     switch (theEvent.getController().getName()){
       case "controlToggle":
  
@@ -150,6 +192,7 @@ public void controlEvent(ControlEvent theEvent){
         break;
 
     }
+  }
   
 }
 
@@ -168,4 +211,66 @@ void keyPressed(){
     break;
   }
   
+}
+
+void highLightLocation(){
+  
+      switch (currentDetection){
+      case 1:
+        stroke(255, 0, 0);
+        fill(255, 0);
+        rect(200, 7, 120, 65, 10);
+        break;
+      
+      case 2:
+        stroke(255, 0, 0);
+        fill(255, 0);
+        rect(696, 7, 100, 65, 10);
+        
+        break;
+        
+      case 3:
+        stroke(255, 0, 0);
+        fill(255, 0);
+        rect(618, 132, 70, 70, 10);
+        
+        break;
+        
+      case 4:
+        stroke(255, 0, 0);
+        fill(255, 0);
+        rect(520, 20, 125, 45, 10);
+        
+        break;
+        
+      case 5:
+        stroke(255, 0, 0);
+        fill(255, 0);
+        rect(715, 248, 90, 73, 10);
+        
+        break;
+        
+      case 6:
+        stroke(255, 0, 0);
+        fill(255, 0);
+        rect(575, 452, 135, 40, 10);
+        
+        break;
+        
+      case 7:
+        stroke(255, 0, 0);
+        fill(255, 0);
+        rect(228, 452, 125, 40, 10);
+        
+        break;
+        
+      case 8:
+        stroke(255, 0, 0);
+        fill(255, 0);
+        rect(8, 355, 90, 72, 10);
+        
+        break;
+     
+      
+    }
 }
