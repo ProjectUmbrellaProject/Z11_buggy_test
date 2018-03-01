@@ -6,12 +6,18 @@ const int leftMotorPin = 4, rightMotorPin = 7, speedPin = 3, trigPin = 9, echoPi
 String inputString = "";
 
 unsigned long previousPingTime;
-unsigned long gantryDetectionTime;
 const int pingInterval = 200; //Determines how frequently the distance is measured from the ultrasonic sensor
 const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
 const int gantryWaitTime = 1500; //Determines how long the buggy waits after detecting a gantry
 int motorPower = 170;
-bool forward, objectDetected, stringComplete, gantryDetected, onHalfSpeed;
+bool forward, objectDetected, stringComplete, onHalfSpeed;
+
+
+bool gantry_detected; //true if gantry is detected
+unsigned long duration; //duration of the gantry pulse
+int pulsecounter; //how many pulses have been recorded
+int maxPulse; //maximum pulse length recorded
+
 
 // This is the main Pixy object
 Pixy pixy;
@@ -29,21 +35,26 @@ void setup() {
   pinMode(gantryIRPIN, INPUT_PULLUP);
   pinMode(leftOverride, OUTPUT);
   pinMode(rightOverride, OUTPUT);
- 
+
+  //setup for the gantry interrupt
+  pinMode(gantryIRPIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(gantryIRPIN), gantryInterrupt, CHANGE);
+  //setup for the gantry pulse detection
+  gantry_detected = false;
+  pulsecounter =0;
+  maxPulse = 0; 
 
 
   //Set the motor states to max power but off
-  analogWrite(speedPin, motorPower);
-  digitalWrite(leftMotorPin, HIGH);
-  digitalWrite(rightMotorPin, HIGH);
+  analogWrite(speedPin, 0);
+  digitalWrite(leftMotorPin, LOW);
+  digitalWrite(rightMotorPin, LOW);
   digitalWrite(leftOverride, LOW);
   digitalWrite(rightOverride, LOW);
   
   stringComplete = false;
   objectDetected = false;
   forward = false;
-  gantryDetected = false;
   onHalfSpeed = false;
     
   Serial.begin(9600); // initiate serial commubnication at 9600 baud rate
@@ -78,15 +89,8 @@ void loop() {
     stringComplete = false;
   }
 
-  if (gantryDetected){
-    Serial.println("~7");
-    moveCommand(0);
-    delay(gantryWaitTime); //Delay because nothing useful has to happen under the gantry
-    moveCommand(1);
-    delay(500); //Allow the buggy to move away from the gantry before checking the IR receiver again
-    
-    gantryDetected = false;
-  }
+ 
+  readPulse();
 
   detectSigns();
 }
@@ -207,7 +211,7 @@ long obstacleDistance(){
 //This 
 void gantryInterrupt(){
   //Interrupts have to be as short as possible to avoid slowing done the program. The flag updated in this function will allow the loop to handle the gantrydetection
-  gantryDetected = true;
+  gantry_detected = true;
 }
 
 void serialEvent() {
@@ -264,7 +268,47 @@ void detectSigns(){
        
       }
     }
-  }  
+  }
+
+void readPulse(){
+  
+  if(gantry_detected && pulsecounter < 10){
+    //geting the duration of the pulse
+    duration = pulseInLong(gantryIRPIN, LOW);
+    
+      if(duration > maxPulse){
+        maxPulse = duration;
+      }    
+    gantry_detected = false;
+    //adjust this delay to get faster timing
+    //(make sure that the buggy waits long enough at the gantry to do this)
+    delay(100);
+    pulsecounter++;
+    
+  }else if(pulsecounter ==10){    
+    int gantryNum = determineGantry();
+    if(gantryNum == -1){
+      Serial.println("undetermined gantry");
+    }else{
+    Serial.print("~7");
+    Serial.println(gantryNum);
+    }
+    pulsecounter = 0;
+    maxPulse = 0; 
+    
+  }
+}
+
+int determineGantry(){  
+  if(maxPulse < 1250 && maxPulse > 750){
+    return 1;
+  }else if(maxPulse < 2250 && maxPulse > 1750){
+    return 2;
+  }else if(maxPulse < 3250 && maxPulse > 2750){
+    return 3;
+  }else return -1;
+  
+}
 
 
 
