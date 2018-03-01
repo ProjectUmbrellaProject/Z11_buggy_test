@@ -23,6 +23,7 @@ int maxPulse; //maximum pulse length recorded
 Pixy pixy;
 static int i = 0; //triggers the object detection pixy every 50 loops
 const int minimumDetections = 4;
+int detections[4]= {0,0,0,0};
 
 
 void setup() {
@@ -76,8 +77,8 @@ void loop() {
   unsigned long currentTime = millis(); //Update the time variable with the current time
   if (currentTime - previousPingTime >= pingInterval){
     previousPingTime = currentTime; 
-
     handleObjectDetection();
+    
   }
   
   if (stringComplete) {
@@ -232,39 +233,33 @@ void serialEvent() {
 
 void detectSigns(){ 
   uint16_t blocks = pixy.getBlocks();
-
-  if (blocks) {
+//  int detections[4] = {0, 0, 0, 0};
+  
+  if (blocks > 0) {
     
     i++; //The counter ensures that this code is only run after evert 10 functions calls. Otherwise the arduino would be overloaded
     
-    if (i % 10 == 0) { //Check every 10 frames/200ms
-      
-      int detections[4] = {0, 0, 0, 0};
+    if (i %10 == 0) { //Check every 10 frames/200ms
       i = 0; //Reset i to prevent overflow
-
-      //Debugging messages 
-      Serial.print(blocks);
-      Serial.println(" Detections");
     
        for (int i = 0; i < blocks; i++){
         
         if (pixy.blocks[i].y > 170) //Only detections above y = 170 are considered so the buggy doesnt react to signs prematurely 
-        
+
+          Serial.print("detected signature ");
+          Serial.println(pixy.blocks[i].signature);
+                 
           detections[pixy.blocks[i].signature - 1]++;
 
-          //Debugging messages
-          Serial.print("Detected ");
-          Serial.print(pixy.blocks[i].signature);
-          Serial.print(" ");
-          Serial.print(detections[pixy.blocks[i].signature - 1]);
-          Serial.println(" times");
-
-          if (detections[pixy.blocks[i].signature - 1] > minimumDetections){
+          if (detections[pixy.blocks[i].signature -1] > minimumDetections){
               Serial.print("~11");
               Serial.println(pixy.blocks[i].signature);
               
               moveCommand(pixy.blocks[i].signature +1); 
-              
+              detections[0] =0;
+              detections[1] =0;
+              detections[2] =0;
+              detections[3] =0;
               break; //Only one detection will be considered in every 10 frames
 
           }
