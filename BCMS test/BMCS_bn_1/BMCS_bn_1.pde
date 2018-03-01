@@ -5,7 +5,7 @@ import processing.serial.*;
 Serial port;
 Meter motorOutput;
 int counter = 0, currentMotorValue, previousTime, currentDetection;
-boolean controlToggle, stopped, moving, obstacleDetected;
+boolean controlToggle, moving, obstacleDetected;
 ControlP5 cp5;
 
 void setup(){
@@ -14,7 +14,6 @@ void setup(){
   background(255);
   cp5 = new ControlP5(this);
   controlToggle = false;
-  stopped = true;
   moving = false;
   obstacleDetected = false;
   currentMotorValue = 0;
@@ -65,7 +64,7 @@ void draw(){
     previousTime = millis();
 
   
-  if (stopped)
+  if (!moving)
       image(loadImage("Assets/stopped.png"), 0, 520);
   else if (moving)
       image(loadImage("Assets/forward.png"), 0, 520);
@@ -102,8 +101,8 @@ void commandInterpreter(String command){
         //6: Obstacle detected
         case "6":
           obstacleDetected = true;
-          stopped = false;
           moving = false;
+          
         break;
         
         //7: Gantry XX detected
@@ -121,7 +120,6 @@ void commandInterpreter(String command){
         //9: Move command confirmation
         case "9":
           obstacleDetected = false;
-          stopped = false;
           moving = true;
           
         break;
@@ -129,7 +127,6 @@ void commandInterpreter(String command){
         //10: Stop command confirmation
         case "10":
           obstacleDetected = false;
-          stopped = true;
           moving = false;
           
          break;
@@ -176,7 +173,7 @@ void commandInterpreter(String command){
 
 public void controlEvent(ControlEvent theEvent){
   //Getting sick of that annoying error on launch...
-  if (millis() > 1000){
+  if (millis() > 2000){
     switch (theEvent.getController().getName()){
       case "controlToggle":
  

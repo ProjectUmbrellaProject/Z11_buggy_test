@@ -103,7 +103,7 @@ void moveCommand(int command){
         delay(20);
         analogWrite(speedPin, 0);
         Serial.println("~10");
-        Serial.print("~8");
+        Serial.print("~8 ");
         Serial.println(0);
         forward = false;
         
@@ -113,8 +113,8 @@ void moveCommand(int command){
       case 1:
         delay(20);
         analogWrite(speedPin, motorPower);
-        Serial.println("~9");
-        Serial.print("~8");
+        Serial.println("~9 ");
+        Serial.print("~8 ");
         Serial.println(motorPower);
         forward = true;
       
@@ -125,7 +125,7 @@ void moveCommand(int command){
         if(!onHalfSpeed){
           motorPower = motorPower/2;
           analogWrite(speedPin, motorPower);
-          Serial.print("~8");
+          Serial.print("~8 ");
           Serial.println(motorPower);
           onHalfSpeed = true;
         }
@@ -136,7 +136,7 @@ void moveCommand(int command){
         if(onHalfSpeed){
           motorPower = 2* motorPower;
           analogWrite(speedPin, motorPower);
-          Serial.print("~8");
+          Serial.print("~8 ");
           Serial.println(motorPower);
           onHalfSpeed = false;
         }
@@ -176,7 +176,7 @@ void handleObjectDetection(){
       objectDetected = true; //The objectDetected boolean prevents the if statement from being repeatedly executed while the object is still present
       moveCommand(0);
       forward = true; //Calling move command 0 also sets forward to false which is unintended in this case
-      Serial.print("~6");
+      Serial.print("~6 ");
       Serial.println(distance);
 
     }
@@ -232,22 +232,34 @@ void serialEvent() {
 
 void detectSigns(){ 
   uint16_t blocks = pixy.getBlocks();
-  int detections[4] = {0, 0, 0, 0};
-  
-  if (blocks > 0) {
+
+  if (blocks) {
     
     i++; //The counter ensures that this code is only run after evert 10 functions calls. Otherwise the arduino would be overloaded
     
-    if (i %10 == 0) { //Check every 10 frames/200ms
+    if (i % 10 == 0) { //Check every 10 frames/200ms
+      
+      int detections[4] = {0, 0, 0, 0};
       i = 0; //Reset i to prevent overflow
+
+      //Debugging messages 
+      Serial.print(blocks);
+      Serial.println(" Detections");
     
        for (int i = 0; i < blocks; i++){
         
         if (pixy.blocks[i].y > 170) //Only detections above y = 170 are considered so the buggy doesnt react to signs prematurely 
         
-          detections[pixy.blocks[i].signature + 1]++;
+          detections[pixy.blocks[i].signature - 1]++;
 
-          if (detections[pixy.blocks[i].signature + 1] > minimumDetections){
+          //Debugging messages
+          Serial.print("Detected ");
+          Serial.print(pixy.blocks[i].signature);
+          Serial.print(" ");
+          Serial.print(detections[pixy.blocks[i].signature - 1]);
+          Serial.println(" times");
+
+          if (detections[pixy.blocks[i].signature - 1] > minimumDetections){
               Serial.print("~11");
               Serial.println(pixy.blocks[i].signature);
               
@@ -290,7 +302,7 @@ void readPulse(){
     if(gantryNum == -1){
       Serial.println("undetermined gantry");
     }else{
-    Serial.print("~7");
+    Serial.print("~7 ");
     Serial.println(gantryNum);
     }
     pulsecounter = 0;
