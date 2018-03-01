@@ -64,12 +64,12 @@ void draw(){
     previousTime = millis();
 
   
-  if (!moving)
-      image(loadImage("Assets/stopped.png"), 0, 520);
+  if (obstacleDetected)
+      image(loadImage("Assets/obstacleDetected.png"), 0, 520);
   else if (moving)
       image(loadImage("Assets/forward.png"), 0, 520);
-  else if (obstacleDetected)
-      image(loadImage("Assets/obstacleDetected.png"), 0, 520);
+  else if (!moving)
+      image(loadImage("Assets/stopped.png"), 0, 520);
   
     motorOutput.updateMeter(currentMotorValue);
 }
@@ -102,7 +102,7 @@ void commandInterpreter(String command){
         case "6":
           obstacleDetected = true;
           moving = false;
-          
+          println("obstacle detected");
         break;
         
         //7: Gantry XX detected
