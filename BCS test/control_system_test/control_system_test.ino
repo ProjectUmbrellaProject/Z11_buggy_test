@@ -78,7 +78,10 @@ void loop() {
   if (currentTime - previousPingTime >= pingInterval){
     previousPingTime = currentTime; 
     handleObjectDetection();
-    
+
+    for (int i = 0; i < 4; i ++)
+      detections[i] = 0; //The camera detections are reset every 200ms
+      //This way an object must be detected minimumDetections number of times within 200ms before the buggy responds
   }
   
   if (stringComplete) {
@@ -209,7 +212,6 @@ long obstacleDistance(){
 
   
 }
-//This 
 void gantryInterrupt(){
   //Interrupts have to be as short as possible to avoid slowing done the program. The flag updated in this function will allow the loop to handle the gantrydetection
   gantry_detected = true;
@@ -233,13 +235,12 @@ void serialEvent() {
 
 void detectSigns(){ 
   uint16_t blocks = pixy.getBlocks();
-//  int detections[4] = {0, 0, 0, 0};
   
   if (blocks > 0) {
     
-    i++; //The counter ensures that this code is only run after evert 10 functions calls. Otherwise the arduino would be overloaded
+    i++; //The counter ensures that this code is only run after every 10 functions calls. Otherwise the arduino would be overloaded
     
-    if (i %10 == 0) { //Check every 10 frames/200ms
+    if (i % 10 == 0) { //Check every 10 frames/200ms
       i = 0; //Reset i to prevent overflow
     
        for (int i = 0; i < blocks; i++){
@@ -253,13 +254,9 @@ void detectSigns(){
 
           if (detections[pixy.blocks[i].signature -1] > minimumDetections){
               Serial.print("~11");
-              Serial.println(pixy.blocks[i].signature);
-              
+              Serial.println(pixy.blocks[i].signature);   
               moveCommand(pixy.blocks[i].signature +1); 
-              detections[0] =0;
-              detections[1] =0;
-              detections[2] =0;
-              detections[3] =0;
+
               break; //Only one detection will be considered in every 10 frames
 
           }
@@ -283,23 +280,28 @@ void readPulse(){
     //geting the duration of the pulse
     duration = pulseInLong(gantryIRPIN, LOW);
     
-      if(duration > maxPulse){
-        maxPulse = duration;
-      }    
+    if(duration > maxPulse){
+      maxPulse = duration;
+    } 
+       
     gantry_detected = false;
     //adjust this delay to get faster timing
     //(make sure that the buggy waits long enough at the gantry to do this)
     delay(100);
     pulsecounter++;
     
-  }else if(pulsecounter ==10){    
+  }
+  else if(pulsecounter == 10){    
+    
     int gantryNum = determineGantry();
-    if(gantryNum == -1){
+    
+    if(gantryNum == -1)
       Serial.println("undetermined gantry");
-    }else{
-    Serial.print("~7 ");
-    Serial.println(gantryNum);
+    else{
+      Serial.print("~7 ");
+      Serial.println(gantryNum);
     }
+    
     pulsecounter = 0;
     maxPulse = 0; 
     
