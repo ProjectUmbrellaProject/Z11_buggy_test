@@ -6,7 +6,7 @@ const int leftMotorPin = 4, rightMotorPin = 7, speedPin = 3, trigPin = 9, echoPi
 String inputString = "";
 
 unsigned long previousPingTime;
-const int pingInterval = 200; //Determines how frequently the distance is measured from the ultrasonic sensor
+const int pingInterval = 400; //Determines how frequently the distance is measured from the ultrasonic sensor
 const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
 const int gantryWaitTime = 1500; //Determines how long the buggy waits after detecting a gantry
 int motorPower = 170;
@@ -247,8 +247,6 @@ void detectSigns(){
         
         if (pixy.blocks[i].y > 170) //Only detections above y = 170 are considered so the buggy doesnt react to signs prematurely 
 
-          Serial.print("detected signature ");
-          Serial.println(pixy.blocks[i].signature);
                  
           detections[pixy.blocks[i].signature - 1]++;
 
