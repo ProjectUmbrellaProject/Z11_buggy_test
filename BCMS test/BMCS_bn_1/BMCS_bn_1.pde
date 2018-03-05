@@ -127,7 +127,7 @@ void commandInterpreter(String command){
         //10: Stop command confirmation
         case "10":
           obstacleDetected = false;
-          moving = false;
+          moving = false; 
           
          break;
          
@@ -147,6 +147,8 @@ void commandInterpreter(String command){
             //Green: Speed up sign
             case 2:
               if (currentDetection == 5)
+                currentDetection = 6;
+              else if (currentDetection == 2)
                 currentDetection = 6;
               else if (currentDetection == 7)
                 currentDetection = 8;
