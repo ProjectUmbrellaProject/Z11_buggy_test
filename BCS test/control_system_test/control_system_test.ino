@@ -12,9 +12,9 @@
 #define echoPin 9
 
 String inputString = "";
-int motorPower = 170;
-int reducedSpeed = 135;
-int maxSpeed = 170;
+short motorPower = 170;
+const short reducedSpeed = 135;
+const short maxSpeed = 170;
 bool forward, stringComplete;
 
 //Object detection variables

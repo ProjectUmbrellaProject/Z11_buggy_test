@@ -76,21 +76,25 @@ void draw(){
 
 void serialEvent(Serial p){
    String receivedString = p.readString();
-   print(receivedString);
+
    counter++; //During the initial startup the serial event callback will be called 9 times. The counter allows these calls to be ignored
    
    if (counter > 9){
+     printCommandInformation(receivedString);
      commandInterpreter(receivedString);
     
      if ((receivedString.trim()).equals("obstacle"))
        cp5.getController("controlToggle").setValue(0);
      
    }
+   else
+     print(receivedString);
    
    p.clear();
    
  
 }
+
 
 void commandInterpreter(String command){
   switch (command.charAt(0)){
@@ -102,7 +106,7 @@ void commandInterpreter(String command){
         case "6":
           obstacleDetected = true;
           moving = false;
-          println("obstacle detected");
+          
         break;
         
         //7: Gantry XX detected
@@ -272,4 +276,53 @@ void highLightLocation(){
      
       
     }
+}
+
+
+void printCommandInformation(String command){
+  switch (command.substring(1, 3).trim()){
+    case "6":
+      println("Obstacle detected at " + command.substring(3).trim() + " cm");
+      
+    break;
+    
+    case "7":
+      println("Detected gantry #: " + (command.substring(3)).trim());
+    break;
+    
+    case "8":
+      println("Motor power: " + (command.substring(3)).trim());
+    break;
+    
+    case "9":
+      println("Start command received");
+    break;
+    
+    case "10":
+      println("Stop command received");
+    break;
+    
+    case "11":
+    
+      print("Detected colour: ");
+      
+      switch (Integer.valueOf((command.substring(3)).trim())){
+        case 1:
+          println("Red");
+        break;
+        
+        case 2:
+          println("Green");
+        break;
+        
+        case 3:
+          println("Yellow");
+        break;
+        
+      }
+      break;
+    
+    
+  }
+  
 }
