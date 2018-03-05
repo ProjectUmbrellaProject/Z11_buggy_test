@@ -17,13 +17,20 @@ bool gantry_detected; //true if gantry is detected
 unsigned long duration; //duration of the gantry pulse
 int pulsecounter; //how many pulses have been recorded
 int maxPulse; //maximum pulse length recorded
+const int gantryCounter = 2;
 
 
 // This is the main Pixy object
 Pixy pixy;
 static int i = 0; //triggers the object detection pixy every 50 loops
-const int minimumDetections = 4;
+const int minimumDetections = 3;
+int previousDetected =-1;
 int detections[4]= {0,0,0,0};
+
+int reducedSpeed = 135;
+int maxSpeed = 170;
+
+bool detectedTurnSign;
 
 
 void setup() {
@@ -68,6 +75,7 @@ void setup() {
 
   //Send status to monitoring program
   Serial.println("Buggy: Setup Complete.");
+  detectedTurnSign = false;
 
   pixy.init();
 }
@@ -92,7 +100,6 @@ void loop() {
     inputString = "";
     stringComplete = false;
   }
-
  
   readPulse();
 
@@ -126,40 +133,46 @@ void moveCommand(int command){
         
        //Go to half speed
        case 2:
-        if(!onHalfSpeed){
-          motorPower = motorPower/2;
+        if(!onHalfSpeed && forward){
+          motorPower = reducedSpeed;
           analogWrite(speedPin, motorPower);
           Serial.print("~8 ");
           Serial.println(motorPower);
           onHalfSpeed = true;
+          detectedTurnSign = true;
         }
         break;
       
       //Resume full speed
       case 3:
-        if(onHalfSpeed){
-          motorPower = 2* motorPower;
+        if(onHalfSpeed && forward){
+          motorPower = maxSpeed;
           analogWrite(speedPin, motorPower);
           Serial.print("~8 ");
           Serial.println(motorPower);
           onHalfSpeed = false;
+          detectedTurnSign = false;
         }
         break;
 
-      //Turn right
+      //Turn left
       case 4:
+      if (!detectedTurnSign){
+        delay(200);
+        digitalWrite(rightOverride, HIGH);
+        delay(400);
+        digitalWrite(rightOverride, LOW);
+        detectedTurnSign = true;
+      }
+        break;
+
+        
+      //Turn right
+      case 5:
         delay(200);
         digitalWrite(leftOverride, HIGH);
         delay(200);
         digitalWrite(leftOverride, LOW);
-        break;
-
-      //Turn left
-      case 5:
-        delay(200);
-        digitalWrite(rightOverride, HIGH);
-        delay(200);
-        digitalWrite(rightOverride, LOW);
         break;
         
       default:
@@ -240,20 +253,27 @@ void detectSigns(){
     
     i++; //The counter ensures that this code is only run after every 10 functions calls. Otherwise the arduino would be overloaded
     
-    if (i % 10 == 0) { //Check every 10 frames/200ms
+    if (i % 1 == 0) { //Check every 10 frames/200ms
       i = 0; //Reset i to prevent overflow
     
        for (int i = 0; i < blocks; i++){
         
-        if (pixy.blocks[i].y > 170) //Only detections above y = 170 are considered so the buggy doesnt react to signs prematurely 
+        if (pixy.blocks[i].y > 180) //Only detections above y = 170 are considered so the buggy doesnt react to signs prematurely 
 
                  
           detections[pixy.blocks[i].signature - 1]++;
 
-          if (detections[pixy.blocks[i].signature -1] > minimumDetections){
-              Serial.print("~11");
-              Serial.println(pixy.blocks[i].signature);   
-              moveCommand(pixy.blocks[i].signature +1); 
+          if (detections[pixy.blocks[i].signature -1] >= minimumDetections){
+              if(previousDetected == -1){
+                previousDetected = pixy.blocks[i].signature;
+              }
+              else if(previousDetected != pixy.blocks[i].signature){
+              
+                Serial.print("~11");
+                Serial.println(pixy.blocks[i].signature);   
+                moveCommand(pixy.blocks[i].signature +1);
+                previousDetected = pixy.blocks[i].signature;
+              }
 
               break; //Only one detection will be considered in every 10 frames
 
@@ -274,7 +294,7 @@ void detectSigns(){
 
 void readPulse(){
   
-  if(gantry_detected && pulsecounter < 10){
+  if(gantry_detected && pulsecounter < gantryCounter){
     //geting the duration of the pulse
     duration = pulseInLong(gantryIRPIN, LOW);
     
@@ -289,7 +309,7 @@ void readPulse(){
     pulsecounter++;
     
   }
-  else if(pulsecounter == 10){    
+  else if(pulsecounter == gantryCounter){    
     
     int gantryNum = determineGantry();
     
