@@ -8,8 +8,9 @@
 #define leftOverride 5
 #define rightOverride 6
 #define rightMotorPin 7
-#define trigPin 8
-#define echoPin 9
+#define echoPin 8
+#define trigPin 9
+
 
 String inputString = "";
 short motorPower = 170;
@@ -38,8 +39,10 @@ int detections[4]= {0,0,0,0};
 
 void setup() {
   //Declare output and input pins
-  for (int i = 3; i < 9; i ++)
+  for (int i = 3; i < 8; i ++)
     pinMode(i, OUTPUT); //A mildly terrible way of clearing some of the pin setups
+
+  pinMode(trigPin, OUTPUT);
        
   pinMode(echoPin, INPUT); 
 
@@ -150,7 +153,7 @@ void moveCommand(int command){
           break;
   
         //Turn left
-        case 4:
+        case 5:
           delay(200);
           digitalWrite(rightOverride, HIGH);
           delay(400);
@@ -159,7 +162,7 @@ void moveCommand(int command){
           break;
           
         //Turn right
-        case 5:
+        case 4:
           delay(200);
           digitalWrite(leftOverride, HIGH);
           delay(200);
@@ -250,17 +253,19 @@ void detectSigns(){
         detections[pixy.blocks[i].signature - 1]++;
 
         if (detections[pixy.blocks[i].signature -1] >= minimumDetections){
+          Serial.println("here");
           
-            if(previousDetected == -1)
-              previousDetected = pixy.blocks[i].signature;   
+
               
-            else if(previousDetected != pixy.blocks[i].signature){
+            if(previousDetected != pixy.blocks[i].signature){
               Serial.print("~11");
               Serial.println(pixy.blocks[i].signature);   
               moveCommand(pixy.blocks[i].signature +1);
               previousDetected = pixy.blocks[i].signature;
             }
-
+            else if(previousDetected == -1)
+              previousDetected = pixy.blocks[i].signature;  
+               
             break; //Only one detection will be considered
 
         }

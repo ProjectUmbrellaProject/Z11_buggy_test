@@ -76,20 +76,21 @@ void draw(){
 
 void serialEvent(Serial p){
    String receivedString = p.readString();
-
-   counter++; //During the initial startup the serial event callback will be called 9 times. The counter allows these calls to be ignored
    
-   if (counter > 9){
-     printCommandInformation(receivedString);
-     commandInterpreter(receivedString);
-    
-     if ((receivedString.trim()).equals("obstacle"))
-       cp5.getController("controlToggle").setValue(0);
-     
+   //If the string starts with ~ it contains useful information
+   if (receivedString.charAt(0) == '~'){
+       printCommandInformation(receivedString);
+       commandInterpreter(receivedString);          
    }
    else
      print(receivedString);
-   
+
+
+   counter++; //During the initial startup the serial event callback will be called 9 times. The counter allows these calls to be ignored
+  /* 
+   if (counter > 9)    
+         commandInterpreter(receivedString);
+         */  
    p.clear();
    
  
@@ -100,7 +101,6 @@ void commandInterpreter(String command){
   switch (command.charAt(0)){
     
     case '~':
-    
       switch (command.substring(1,3).trim()){
         //6: Obstacle detected
         case "6":
