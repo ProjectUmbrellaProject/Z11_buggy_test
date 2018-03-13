@@ -152,7 +152,15 @@ void moveCommand(int command){
             Serial.println(motorPower);
           }
           break;
-  
+
+        //Turn right
+        case 4:
+          delay(100);
+          digitalWrite(leftOverride, HIGH);
+          delay(200);
+          digitalWrite(leftOverride, LOW);
+          break;
+          
         //Turn left
         case 5:
           delay(200);
@@ -162,13 +170,7 @@ void moveCommand(int command){
   
           break;
           
-        //Turn right
-        case 4:
-          delay(200);
-          digitalWrite(leftOverride, HIGH);
-          delay(200);
-          digitalWrite(leftOverride, LOW);
-          break;
+
           
         default:
           Serial.println("~20");
@@ -228,18 +230,20 @@ void gantryInterrupt(){
 }
 
 void serialEvent() {
-  while (Serial.available()) {
-    // get the new byte:
+  //Keeping old version just in case
+  /*while (Serial.available()) {
+
     char inChar = (char)Serial.read();
-    
-    // add it to the inputString:
+
     inputString += inChar;
     
-    // if the incoming character is a newline, set a flag so the main loop can
-    // do something about it:
     if (inChar == '\n') {
       stringComplete = true;
     }
+  }*/
+  if (Serial.available()){
+    inputString = Serial.readStringUntil('\n');
+    strinComplete = true;
   }
 }
 
