@@ -29,7 +29,7 @@ bool gantry_detected; //true if gantry is detected
 unsigned long duration; //duration of the gantry pulse
 int pulsecounter; //how many pulses have been recorded
 int maxPulse; //maximum pulse length recorded
-const int gantryCounter = 2;
+const int gantryCounter = 3;
 
 //Pixy variables
 Pixy pixy;
@@ -39,12 +39,13 @@ int detections[4]= {0,0,0,0};
 
 void setup() {
   //Declare output and input pins
-  for (int i = 3; i < 8; i ++)
-    pinMode(i, OUTPUT); //A mildly terrible way of clearing some of the pin setups
-
-  pinMode(trigPin, OUTPUT);
-       
-  pinMode(echoPin, INPUT); 
+  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echoPin, INPUT); // Sets the echoPin as an Input
+  pinMode(speedPin, OUTPUT);
+  pinMode(leftMotorPin, OUTPUT);
+  pinMode(rightMotorPin, OUTPUT);
+  pinMode(leftOverride, OUTPUT);
+  pinMode(rightOverride, OUTPUT);
 
   //Setup for the gantry interrupt
   pinMode(gantryIRPIN, INPUT_PULLUP);
@@ -253,9 +254,6 @@ void detectSigns(){
         detections[pixy.blocks[i].signature - 1]++;
 
         if (detections[pixy.blocks[i].signature -1] >= minimumDetections){
-          Serial.println("here");
-          
-
               
             if(previousDetected != pixy.blocks[i].signature){
               Serial.print("~11");
@@ -293,7 +291,7 @@ void readPulse(){
     gantry_detected = false;
     //adjust this delay to get faster timing
     //(make sure that the buggy waits long enough at the gantry to do this)
-    delay(100);
+    delay(50);
     pulsecounter++;
     
   }

@@ -1,5 +1,7 @@
 #define leftMotor 4 //H-bridge setup is probably more complex than this.
-#define rightMotor 4
+#define leftMotor2 5
+#define rightMotor 6
+#define rightMotor2 7
 
 String inputString = "";
 bool stringComplete, start;
@@ -9,7 +11,9 @@ int maxMotorSpeed = 255, baseSpeed = 200;
 
 void setup() {
   pinMode(leftMotor, OUTPUT);
+  pinMode(leftMotor2, OUTPUT);
   pinMode(rightMotor, OUTPUT);
+  pinMode(rightMotor2, OUTPUT);
   
   analogWrite(leftMotor, 0);
   analogWrite(rightMotor, 0);
