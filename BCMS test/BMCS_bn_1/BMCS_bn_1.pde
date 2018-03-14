@@ -321,8 +321,11 @@ void printCommandInformation(String command){
         
       }
       break;
-    
-    
+      
+    case "12":
+      println("Did not recognise gantry number");
+      break;
+
   }
   
 }

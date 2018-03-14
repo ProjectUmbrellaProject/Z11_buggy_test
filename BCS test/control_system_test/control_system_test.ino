@@ -23,7 +23,7 @@ bool turndirection = false; // false  = left, true  = right
 //Object detection variables
 unsigned long previousPingTime;
 const short pingInterval = 400; //Determines how frequently the distance is measured from the ultrasonic sensor
-const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
+const short minimumDistance = 20; //Determines how close an object must be to stop the buggy
 bool objectDetected;
 
 //Gantry detection variables
@@ -305,7 +305,7 @@ void readPulse(){
     int gantryNum = determineGantry();
     
     if(gantryNum == -1)
-      Serial.println("undetermined gantry");
+      Serial.println("~12");
     else{
       Serial.print("~7 ");
       Serial.println(gantryNum);
