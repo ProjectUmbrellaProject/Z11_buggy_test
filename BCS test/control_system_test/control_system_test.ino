@@ -18,6 +18,8 @@ const short reducedSpeed = 135;
 const short maxSpeed = 170;
 bool forward, stringComplete;
 
+bool turndirection = false; // false  = left, true  = right
+
 //Object detection variables
 unsigned long previousPingTime;
 const short pingInterval = 400; //Determines how frequently the distance is measured from the ultrasonic sensor
@@ -155,21 +157,20 @@ void moveCommand(int command){
 
         //Turn right
         case 4:
+        if(turndirection){
+          //turn right
           delay(100);
           digitalWrite(leftOverride, HIGH);
           delay(200);
           digitalWrite(leftOverride, LOW);
-          break;
-          
-        //Turn left
-        case 5:
-          delay(200);
+          } else {
+          //turn left
+          delay(100);
           digitalWrite(rightOverride, HIGH);
-          delay(400);
+          delay(200);
           digitalWrite(rightOverride, LOW);
-  
+          }
           break;
-          
 
           
         default:
