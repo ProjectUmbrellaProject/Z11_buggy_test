@@ -13,12 +13,12 @@
 
 
 String inputString = "";
-short motorPower = 170;
+short motorPower = 150;
 const short reducedSpeed = 135;
-const short maxSpeed = 170;
+const short maxSpeed = 150;
 bool forward, stringComplete;
 
-bool turndirection = false; // false  = left, true  = right
+bool turndirection = true; // false  = left, true  = right
 
 //Object detection variables
 unsigned long previousPingTime;
@@ -266,15 +266,15 @@ void detectSigns(){
               //moveCommand(pixy.blocks[i].signature +1);
 
               if(pixy.blocks[i].signature == 1)
-                moveCommand(1);
+                moveCommand(2);
               else if (pixy.blocks[i].signature == 2)
-                moveCommand(2);
-              else if (pixy.blocks[i].signature == 3)
                 moveCommand(3);
+              else if (pixy.blocks[i].signature == 3)
+                moveCommand(4);
               else if (pixy.blocks[i].signature == 4)
-                moveCommand(1);
-              else if (pixy.blocks[i].signature == 5)
                 moveCommand(2);
+              else if (pixy.blocks[i].signature == 5)
+                moveCommand(3);
                 
               previousDetected = pixy.blocks[i].signature;
             }
