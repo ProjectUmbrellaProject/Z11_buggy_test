@@ -137,7 +137,7 @@ void commandInterpreter(String command){
          
         //11: Detected colour ID XX
         case "11":
-        
+        /*
           //There are duplicates of the slow down and speed up signs. In order to determine which of the two signs the buggy encoutered the previous detection must be considered.
           switch (Integer.valueOf((command.substring(3)).trim())){
             //Red: Slow down sign
@@ -164,7 +164,26 @@ void commandInterpreter(String command){
               
             break;     
           }
-          
+          */
+            
+          int colourId = Integer.valueOf((command.substring(3)).trim());
+          if (colourId == 1 || colourId == 4){
+            
+            if (currentDetection == 3)
+              currentDetection = 5;
+            else if (currentDetection == 6)
+              currentDetection = 7;
+              
+          } else if (colourId == 2 || colourId == 5){
+              if (currentDetection == 5)
+                currentDetection = 6;
+              else if (currentDetection == 2)
+                currentDetection = 6;
+              else if (currentDetection == 7)
+                currentDetection = 8;
+                
+          } else if (colourId == 3)
+              currentDetection = 4;
         break;
         
         //20: Unknown command
@@ -173,6 +192,8 @@ void commandInterpreter(String command){
         break;
            
   }
+
+    
   break;
   }
 }
