@@ -244,7 +244,7 @@ void serialEvent() {
   }*/
   if (Serial.available()){
     inputString = Serial.readStringUntil('\n');
-    strinComplete = true;
+    stringComplete = true;
   }
 }
 
