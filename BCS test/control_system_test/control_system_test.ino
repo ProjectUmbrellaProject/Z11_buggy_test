@@ -23,7 +23,7 @@ bool turndirection = false; // false  = left, true  = right
 //Object detection variables
 unsigned long previousPingTime;
 const short pingInterval = 400; //Determines how frequently the distance is measured from the ultrasonic sensor
-const short minimumDistance = 20; //Determines how close an object must be to stop the buggy
+const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
 bool objectDetected;
 
 //Gantry detection variables
@@ -250,7 +250,7 @@ void serialEvent() {
 
 void detectSigns(){ 
   uint16_t blocks = pixy.getBlocks();
-  
+    
   if (blocks > 0) {
     
     for (int i = 0; i < blocks; i++){
@@ -260,10 +260,22 @@ void detectSigns(){
 
         if (detections[pixy.blocks[i].signature -1] >= minimumDetections){
               
-            if(previousDetected != pixy.blocks[i].signature){
+            if(previousDetected != pixy.blocks[i].signature && previousDetected != pixy.blocks[i].signature +3){
               Serial.print("~11");
-              Serial.println(pixy.blocks[i].signature);   
-              moveCommand(pixy.blocks[i].signature +1);
+              Serial.println(pixy.blocks[i].signature);
+              //moveCommand(pixy.blocks[i].signature +1);
+
+              if(pixy.blocks[i].signature == 1)
+                moveCommand(1);
+              else if (pixy.blocks[i].signature == 2)
+                moveCommand(2);
+              else if (pixy.blocks[i].signature == 3)
+                moveCommand(3);
+              else if (pixy.blocks[i].signature == 4)
+                moveCommand(1);
+              else if (pixy.blocks[i].signature == 5)
+                moveCommand(2);
+                
               previousDetected = pixy.blocks[i].signature;
             }
             else if(previousDetected == -1)
@@ -305,7 +317,7 @@ void readPulse(){
     int gantryNum = determineGantry();
     
     if(gantryNum == -1)
-      Serial.println("~12");
+      Serial.println("undetermined gantry");
     else{
       Serial.print("~7 ");
       Serial.println(gantryNum);
