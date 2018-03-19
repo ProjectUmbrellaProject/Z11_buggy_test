@@ -5,7 +5,7 @@ import processing.serial.*;
 Serial port;
 Meter motorOutput;
 int counter = 0, currentMotorValue, previousTime, currentDetection;
-boolean controlToggle, moving, obstacleDetected;
+boolean controlToggle, moving, obstacleDetected, pressedToggle;
 ControlP5 cp5;
 
 void setup(){
@@ -16,6 +16,7 @@ void setup(){
   controlToggle = false;
   moving = false;
   obstacleDetected = false;
+  pressedToggle = false;
   currentMotorValue = 0;
   currentDetection = 0;
   
@@ -72,6 +73,7 @@ void draw(){
       image(loadImage("Assets/stopped.png"), 0, 520);
   
     motorOutput.updateMeter(currentMotorValue);
+
 }
 
 void serialEvent(Serial p){
@@ -137,35 +139,7 @@ void commandInterpreter(String command){
          
         //11: Detected colour ID XX
         case "11":
-        /*
-          //There are duplicates of the slow down and speed up signs. In order to determine which of the two signs the buggy encoutered the previous detection must be considered.
-          switch (Integer.valueOf((command.substring(3)).trim())){
-            //Red: Slow down sign
-            case 1:
-              if (currentDetection == 3)
-                currentDetection = 5;
-              else if (currentDetection == 6)
-                currentDetection = 7;
-            break;
-            
-            //Green: Speed up sign
-            case 2:
-              if (currentDetection == 5)
-                currentDetection = 6;
-              else if (currentDetection == 2)
-                currentDetection = 6;
-              else if (currentDetection == 7)
-                currentDetection = 8;
-            break;
-            
-            //Yellow: Take fork
-            case 3:
-              currentDetection = 4;
-              
-            break;     
-          }
-          */
-            
+
           int colourId = Integer.valueOf((command.substring(3)).trim());
           if (colourId == 1 || colourId == 4){
             
@@ -203,14 +177,17 @@ public void controlEvent(ControlEvent theEvent){
   if (millis() > 2000){
     switch (theEvent.getController().getName()){
       case "controlToggle":
- 
+         pressedToggle = true;
+                     
+        if (controlToggle){ 
+         port.write("1 \n");
+
+        }
+          
+        else{
+         port.write("0 \n");
+        }
         
-        if (controlToggle)
-          port.write("1" + "\n");
-          
-        else
-          port.write("0" + "\n");
-          
          controlToggle = !controlToggle;
       
         break;
@@ -326,21 +303,14 @@ void printCommandInformation(String command){
     case "11":
     
       print("Detected colour: ");
-      
-      switch (Integer.valueOf((command.substring(3)).trim())){
-        case 1:
-          println("Red");
-        break;
-        
-        case 2:
+      int colourId = Integer.valueOf((command.substring(3)).trim());
+        if (colourId == 1 || colourId == 4)
+          println("Blue");
+        else if (colourId == 2 || colourId == 5)
           println("Green");
-        break;
-        
-        case 3:
+        else if (colourId == 3)
           println("Yellow");
-        break;
-        
-      }
+
       break;
       
     case "12":

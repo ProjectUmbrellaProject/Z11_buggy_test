@@ -13,9 +13,9 @@
 
 
 String inputString = "";
-short motorPower = 150;
+short motorPower = 170;
 const short reducedSpeed = 135;
-const short maxSpeed = 150;
+const short maxSpeed = 170;
 bool forward, stringComplete;
 
 bool turndirection = true; // false  = left, true  = right
@@ -35,7 +35,7 @@ const int gantryCounter = 3;
 
 //Pixy variables
 Pixy pixy;
-const int minimumDetections = 3;
+const int minimumDetections = 2;
 int previousDetected = -1;
 int detections[4]= {0,0,0,0};
 
@@ -95,6 +95,7 @@ void loop() {
       detections[i] = 0; //The camera detections are reset every 200ms
       //This way an object must be detected minimumDetections number of times within 200ms before the buggy responds
   }
+  
   //If a new string has been received call the movecommand function
   if (stringComplete) {
     //The stringComplete bool indicates whether or not a new command has been recieved
@@ -159,15 +160,19 @@ void moveCommand(int command){
         case 4:
         if(turndirection){
           //turn right
-          delay(100);
+          //delay(200);
+       //  Serial.println("trying to turn now");
+          
           digitalWrite(leftOverride, HIGH);
-          delay(200);
+          delay(1500);
+          //Serial.println("delay off");
           digitalWrite(leftOverride, LOW);
+          //analogWrite(speedPin, prevM);
           } else {
           //turn left
-          delay(100);
-          digitalWrite(rightOverride, HIGH);
           delay(200);
+          digitalWrite(rightOverride, HIGH);
+          delay(700);
           digitalWrite(rightOverride, LOW);
           }
           break;
@@ -231,17 +236,6 @@ void gantryInterrupt(){
 }
 
 void serialEvent() {
-  //Keeping old version just in case
-  /*while (Serial.available()) {
-
-    char inChar = (char)Serial.read();
-
-    inputString += inChar;
-    
-    if (inChar == '\n') {
-      stringComplete = true;
-    }
-  }*/
   if (Serial.available()){
     inputString = Serial.readStringUntil('\n');
     stringComplete = true;
@@ -254,13 +248,13 @@ void detectSigns(){
   if (blocks > 0) {
     
     for (int i = 0; i < blocks; i++){
-      if (pixy.blocks[i].y > 180) //Only detections above y = 180 are considered so the buggy doesnt react to signs prematurely 
+      if (pixy.blocks[i].y > 150) //Only detections above y = 180 are considered so the buggy doesnt react to signs prematurely 
                
         detections[pixy.blocks[i].signature - 1]++;
 
         if (detections[pixy.blocks[i].signature -1] >= minimumDetections){
               
-            if(previousDetected != pixy.blocks[i].signature && previousDetected != pixy.blocks[i].signature +3){
+            if(previousDetected != pixy.blocks[i].signature && previousDetected != pixy.blocks[i].signature + 3 && previousDetected != pixy.blocks[i].signature - 3 ){
               Serial.print("~11");
               Serial.println(pixy.blocks[i].signature);
               //moveCommand(pixy.blocks[i].signature +1);
@@ -317,7 +311,7 @@ void readPulse(){
     int gantryNum = determineGantry();
     
     if(gantryNum == -1)
-      Serial.println("undetermined gantry");
+      Serial.println("~12");
     else{
       Serial.print("~7 ");
       Serial.println(gantryNum);
