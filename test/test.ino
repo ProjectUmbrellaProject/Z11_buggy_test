@@ -16,11 +16,11 @@ void setup() {
   pinMode(rightMotorSpeed, OUTPUT);
   pinMode(speedPIn, OUTPUT);
   
-      digitalWrite(speedPIn, LOW);
-      analogWrite(rightMotorSpeed, 0);
-      analogWrite(rightMotorDirection, 0);
-      analogWrite(leftMotorDirection, 0);
-      analogWrite(leftMotorSpeed, 0);
+  digitalWrite(speedPIn, LOW);
+  analogWrite(rightMotorSpeed, 0);
+  analogWrite(rightMotorDirection, 0);
+  analogWrite(leftMotorDirection, 0);
+  analogWrite(leftMotorSpeed, 0);
 
   Serial.begin(9600); // initiate serial commubnication at 9600 baud rate
   Serial.print("+++"); //Enter xbee AT commenad mode, NB no carriage return here
@@ -53,17 +53,10 @@ void loop() {
     
     else if (command == 1){
       digitalWrite(speedPIn, HIGH);
-         // analogWrite(rightMotorDirection, 0);
-          digitalWrite(rightMotorDirection, LOW);
-           analogWrite(rightMotorSpeed, 255);
-  
- 
-
-         //   analogWrite(leftMotorDirection, 0);
-            digitalWrite(leftMotorDirection, LOW);
+      digitalWrite(rightMotorDirection, LOW);
+      analogWrite(rightMotorSpeed, 255);
+      digitalWrite(leftMotorDirection, LOW);
       analogWrite(leftMotorSpeed, 100);
-
-
 
       Serial.println("Start");
     } 

@@ -160,15 +160,11 @@ void moveCommand(int command){
         case 4:
         if(turndirection){
           //turn right
-          //delay(200);
-       //  Serial.println("trying to turn now");
-          
           digitalWrite(leftOverride, HIGH);
           delay(1500);
-          //Serial.println("delay off");
           digitalWrite(leftOverride, LOW);
-          //analogWrite(speedPin, prevM);
-          } else {
+          } 
+          else {
           //turn left
           delay(200);
           digitalWrite(rightOverride, HIGH);
