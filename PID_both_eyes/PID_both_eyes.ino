@@ -1,3 +1,6 @@
+#include <Pixy.h>
+#include <SPI.h> 
+
 #define speedPin 3
 #define leftMotorDirection 4
 #define leftMotorSpeedPin 5
@@ -12,8 +15,8 @@ String inputString = "";
 bool stringComplete, start;
 
 //PID variables
-const float K_d = 1, K_p = 0.25, setPoint = 0; //K_p < K_d the derivative term must be large to have a significant influence
-int maxMotorSpeed = 255, baseSpeed = 240;
+float K_d = 1, K_p = 0.25, setPoint = 0; //K_p < K_d the derivative term must be large to have a significant influence
+int maxMotorSpeed = 255, baseSpeed = 240, corneringSpeed = 230;
 int rightMotorSpeed;
 int leftMotorSpeed;
 int previousError;
@@ -23,7 +26,11 @@ const short pingInterval = 400;
 const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
 bool objectDetected;
 
-
+//Pixy variables
+Pixy pixy;
+const int minimumDetections = 2;
+int previousDetected = -1;
+int detections[4]= {0,0,0,0};
 
 void setup() {
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
@@ -61,17 +68,8 @@ void setup() {
 void loop() {
  
   if (stringComplete){
-    int command = inputString.toInt();
+    moveCommand(inputString);
     
-      if (command == 0){
-        start = false;
-        Serial.println("~10");
-      }
-      else if (command == 1){
-        start = true;
-        Serial.println("~10");
-      }
-
     inputString = "";
     stringComplete = false;
   }
@@ -96,8 +94,10 @@ void loop() {
       Serial.print(" right: ");
       Serial.println(rightMotorSpeed);
       previousPingTime = currentTime; 
-          
       handleObjectDetection();
+
+      for (int i = 0; i < 4; i ++)
+        detections[i] = 0; //The camera detections are reset every 200ms
     }
 
     //Constrain motors to a range of output between 0 and maxMotorSpeed
@@ -126,7 +126,8 @@ void loop() {
 
   }
 
-
+  //If tuned correctly it might not be necessary to reduce speed for corners
+  //detectSigns(); 
 }
 
 void serialEvent() {
@@ -149,7 +150,7 @@ void handleObjectDetection(){
     if (!objectDetected && distance <= minimumDistance && start){
       
       objectDetected = true; //The objectDetected boolean prevents the if statement from being repeatedly executed while the object is still present
-      moveCommand(0);
+      moveCommand("/0 ");
      // forward = true; //Calling move command 0 also sets forward to false which is unintended in this case
       Serial.print("~6 ");
       Serial.println(distance);
@@ -157,7 +158,7 @@ void handleObjectDetection(){
     }
     else if (objectDetected && distance > minimumDistance && start){
         objectDetected = false;
-        moveCommand(1);
+        moveCommand("/1 ");
     }
 }
 
@@ -185,13 +186,44 @@ long obstacleDistance(){
   
 }
 
-void moveCommand(int command){
+void moveCommand(String command){
+  int commandNum = (command.substring(1, 3)).toInt();
 
-  if (command == 1){
-    start = true;
+  switch (commandNum){
+    case 0:
+      start = false;
+      Serial.println("~10");
+    break;
+    
+    case 1:
+     start = true;
+     Serial.println("~9 ");
+    break;
+
+    case 2:
+      baseSpeed = (command.substring(4)).toInt();
+      Serial.println("~7 ");
+    break;
+
+    case 3:
+      corneringSpeed = (command.substring(4)).toInt();
+      Serial.println("~7 ");
+    break;
+
+    case 4:
+      K_p = (command.substring(4)).toFloat();
+      Serial.println("~7 ");
+    break;
+
+    case 5:
+      K_d = (command.substring(4)).toFloat();
+      Serial.println("~7 ");
+    break;
+
+    default:
+      Serial.println("~20");
+    break;
   }
-  else if (command == 0)
-    start = false;
 
 }
 
@@ -221,4 +253,44 @@ int getSensorValue(){
    */
  
 }
+
+void detectSigns(){ 
+  uint16_t blocks = pixy.getBlocks();
+    
+  if (blocks > 0) {
+    
+    for (int i = 0; i < blocks; i++){
+      if (pixy.blocks[i].y > 160) //Only detections above y = 180 are considered so the buggy doesnt react to signs prematurely 
+               
+        detections[pixy.blocks[i].signature - 1]++;
+
+        if (detections[pixy.blocks[i].signature -1] >= minimumDetections){
+              
+            if(previousDetected != pixy.blocks[i].signature && previousDetected != pixy.blocks[i].signature + 3 && previousDetected != pixy.blocks[i].signature - 3 ){
+              Serial.print("~11");
+              Serial.println(pixy.blocks[i].signature);
+              //moveCommand(pixy.blocks[i].signature +1);
+
+              if(pixy.blocks[i].signature == 1) //Green
+                baseSpeed = maxMotorSpeed;
+              else if (pixy.blocks[i].signature == 2) //Blue
+                baseSpeed = corneringSpeed;
+              else if (pixy.blocks[i].signature == 3) //Green 2
+                 baseSpeed = maxMotorSpeed;
+              else if (pixy.blocks[i].signature == 4) //Blue 2
+                baseSpeed = corneringSpeed;
+    
+               
+              previousDetected = pixy.blocks[i].signature;
+            }
+            else if(previousDetected == -1)
+              previousDetected = pixy.blocks[i].signature;  
+               
+            break; //Only one detection will be considered
+
+        }     
+      }        
+    }
+ }
+
 
