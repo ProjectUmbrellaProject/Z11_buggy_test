@@ -3,28 +3,26 @@
 #define leftMotorSpeedPin 5
 #define rightMotorSpeedPin 6
 #define rightMotorDirection 7
-#define eyeOne 5 //Originally left override
-//#define eyeTwo to be determined
-//#define eyeThree to be determined
-#define eyeFour 0 //Originally right override
+#define eyePin 5 //must be the right eye
 #define echoPin 8
 #define trigPin 9
 
 String inputString = "";
 bool stringComplete, start;
-//d = 0.15, p = 0.04  or  K_d = 0.11, K_p = 0.055, 
-//most successsful value: Kd=0.11, kp = 0, basespeed = 240
 
-const float K_d = 0.15, K_p = 0.04, setPoint = 2500; //K_p < K_d the derivative term must be large to have a significant influence
+//PID variables
+const float K_d = 1, K_p = 0.5, setPoint = 510; //K_p < K_d the derivative term must be large to have a significant influence
 int maxMotorSpeed = 255, baseSpeed = 240;
+int rightMotorSpeed;
+int leftMotorSpeed;
+int previousError;
 
 unsigned long previousPingTime;
 const short pingInterval = 400;
 const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
 bool objectDetected;
 
-    int rightMotorSpeed;
-    int leftMotorSpeed;
+
 
 void setup() {
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
@@ -34,8 +32,7 @@ void setup() {
   pinMode(rightMotorDirection, OUTPUT);
   pinMode(rightMotorSpeedPin, OUTPUT);
   pinMode(speedPin, OUTPUT);
-  pinMode(eyeOne, INPUT);
-  pinMode(eyeFour, INPUT);
+  pinMode(eyePin, INPUT);
   
   digitalWrite(speedPin, HIGH);
   analogWrite(rightMotorSpeedPin, 0);
@@ -77,8 +74,9 @@ void loop() {
 
   //Basic start/stop commands
   if (start){
-    float previousError;
-    float error = setPoint - getSensorValue();
+    int eyeOutput = analogRead(eyePin);
+
+    int error = eyeOutput - setPoint;
   
     int motorSpeed = K_p * error + K_d * (error - previousError);
     previousError = error;
@@ -116,34 +114,15 @@ void loop() {
       analogWrite(leftMotorSpeedPin, leftMotorSpeed);
       
   } else{
+    
     analogWrite(rightMotorSpeedPin, 0);
     analogWrite(rightMotorDirection, 0);
     analogWrite(leftMotorDirection, 0);
     analogWrite(leftMotorSpeedPin, 0);
 
   }
-  getSensorValue(); //The sensor value must be updated as frequently as possible for this to work
-
-}
 
 
-float getSensorValue(){
-  //Do something to combine the values of all IR sensors into one number
-  int eyeOutputs[4];
-  eyeOutputs[3] = analogRead(eyeOne);
-  eyeOutputs[0] = analogRead(eyeFour);
-
-  float k[2] = {3.125, 1.5635}; //Constants to constrain output within range 0 to 2*setpoint
-
-  /*This assumes the output values correspond to the following conditions: 
-   * Output < 50 Open air
-   *  50 < Output < 300 Black
-   *  300 < Output < 900 White
-   */
- // float output = -k[0] * eyeOutputs[0] - k[1] * eyeOutputs[1] + k[1] * eyeOutputs[2] + k[0] * eyeOutputs[3] + setPoint;
-  float output = -k[0] * eyeOutputs[0] + k[0] * eyeOutputs[3] + setPoint;
-  return output;
- 
 }
 
 void serialEvent() {

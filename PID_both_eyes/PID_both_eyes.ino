@@ -3,28 +3,27 @@
 #define leftMotorSpeedPin 5
 #define rightMotorSpeedPin 6
 #define rightMotorDirection 7
-#define eyeOne 5 //Originally left override
-//#define eyeTwo to be determined
-//#define eyeThree to be determined
-#define eyeFour 0 //Originally right override
+#define leftEyePin 5
+#define rightEyePin 0
 #define echoPin 8
 #define trigPin 9
 
 String inputString = "";
 bool stringComplete, start;
-//d = 0.15, p = 0.04  or  K_d = 0.11, K_p = 0.055, 
-//most successsful value: Kd=0.11, kp = 0, basespeed = 240
 
-const float K_d = 0.15, K_p = 0.04, setPoint = 2500; //K_p < K_d the derivative term must be large to have a significant influence
+//PID variables
+const float K_d = 1, K_p = 0.25, setPoint = 0; //K_p < K_d the derivative term must be large to have a significant influence
 int maxMotorSpeed = 255, baseSpeed = 240;
+int rightMotorSpeed;
+int leftMotorSpeed;
+int previousError;
 
 unsigned long previousPingTime;
 const short pingInterval = 400;
 const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
 bool objectDetected;
 
-    int rightMotorSpeed;
-    int leftMotorSpeed;
+
 
 void setup() {
   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
@@ -34,8 +33,9 @@ void setup() {
   pinMode(rightMotorDirection, OUTPUT);
   pinMode(rightMotorSpeedPin, OUTPUT);
   pinMode(speedPin, OUTPUT);
-  pinMode(eyeOne, INPUT);
-  pinMode(eyeFour, INPUT);
+  pinMode(leftEyePin, INPUT);
+  pinMode(rightEyePin, INPUT);
+  
   
   digitalWrite(speedPin, HIGH);
   analogWrite(rightMotorSpeedPin, 0);
@@ -55,6 +55,7 @@ void setup() {
   Serial.println("Buggy: Setup Complete.");
   stringComplete = false;
   start = false;
+
 }
 
 void loop() {
@@ -77,8 +78,9 @@ void loop() {
 
   //Basic start/stop commands
   if (start){
-    float previousError;
-    float error = setPoint - getSensorValue();
+   // int eyeOutput = analogRead(leftEyePin) - analogRead(rightEyePin);// This should produce a minimum of -1000 and a max of 1000
+
+    int error = setPoint - getSensorValue(); //Setpoint = 0 because the getSensorValue() function already returns values ~= 0 when there is very little error
   
     int motorSpeed = K_p * error + K_d * (error - previousError);
     previousError = error;
@@ -116,34 +118,15 @@ void loop() {
       analogWrite(leftMotorSpeedPin, leftMotorSpeed);
       
   } else{
+    
     analogWrite(rightMotorSpeedPin, 0);
     analogWrite(rightMotorDirection, 0);
     analogWrite(leftMotorDirection, 0);
     analogWrite(leftMotorSpeedPin, 0);
 
   }
-  getSensorValue(); //The sensor value must be updated as frequently as possible for this to work
-
-}
 
 
-float getSensorValue(){
-  //Do something to combine the values of all IR sensors into one number
-  int eyeOutputs[4];
-  eyeOutputs[3] = analogRead(eyeOne);
-  eyeOutputs[0] = analogRead(eyeFour);
-
-  float k[2] = {3.125, 1.5635}; //Constants to constrain output within range 0 to 2*setpoint
-
-  /*This assumes the output values correspond to the following conditions: 
-   * Output < 50 Open air
-   *  50 < Output < 300 Black
-   *  300 < Output < 900 White
-   */
- // float output = -k[0] * eyeOutputs[0] - k[1] * eyeOutputs[1] + k[1] * eyeOutputs[2] + k[0] * eyeOutputs[3] + setPoint;
-  float output = -k[0] * eyeOutputs[0] + k[0] * eyeOutputs[3] + setPoint;
-  return output;
- 
 }
 
 void serialEvent() {
@@ -206,12 +189,36 @@ void moveCommand(int command){
 
   if (command == 1){
     start = true;
-
   }
   else if (command == 0)
     start = false;
 
+}
 
+int getSensorValue(){
+  int rightEye = analogRead(leftEyePin);
+  int leftEye = analogRead(rightEyePin);
 
+  if (leftEye > 950 && rightEye > 950){//if both eyes see black the buggy is no longer following the line. Should probably do something more sophisticated here
+    start = false;
+
+    return 0; //Bad practice to have a condition that leads to nothing being returned
+  }
+  else if (leftEye <= 950 && rightEye >= 950) //Buggy is positioned with the left eye on the edge of white and the right on black
+    return -(leftEye + rightEye);
+  else if (leftEye >= 950 && rightEye <= 950) //Buggy is positioned with the right eye on the edge of white and the left on black
+    return (leftEye + rightEye);
+  else
+    return (leftEye - rightEye); //Buggy is positioned with both eyes on white
+
+  /*Explanation:
+   * In theory (leftEye - rightEye) should work for binary situations where one eye sees white and the other sees black.
+   * E.g: leftEye = 30, rightEye = 1030, => output = -1000
+   * However, when the buggy drifts further and one of the eyes is above the edge of white and the other is on black this approach fails because
+   * the error now decreases instead of increasing.
+   * E.g: leftEye = 530, rigtEye = 1030, => output = -500, Even thought the positioning is worse
+   * The if statements above fix this by changing the output to 1560 for the example above.
+   */
+ 
 }
 
