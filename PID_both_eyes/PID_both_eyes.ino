@@ -15,11 +15,12 @@ String inputString = "";
 bool stringComplete, start;
 
 //PID variables
-float K_d = 1, K_p = 0.25, setPoint = 0; //K_p < K_d the derivative term must be large to have a significant influence
+float K_p = 0.25, K_d = 1, K_i = 0.0, setPoint = 0; //K_p < K_d the derivative term must be large to have a significant influence
 int maxMotorSpeed = 255, baseSpeed = 240, corneringSpeed = 230;
 int rightMotorSpeed;
 int leftMotorSpeed;
 int previousError;
+int integral;
 
 unsigned long previousPingTime;
 const short pingInterval = 400;
@@ -79,9 +80,10 @@ void loop() {
    // int eyeOutput = analogRead(leftEyePin) - analogRead(rightEyePin);// This should produce a minimum of -1000 and a max of 1000
 
     int error = setPoint - getSensorValue(); //Setpoint = 0 because the getSensorValue() function already returns values ~= 0 when there is very little error
-  
-    int motorSpeed = K_p * error + K_d * (error - previousError);
+    integral += error;
+    int motorSpeed = K_p * error + K_i * integral + K_d * (error - previousError);
     previousError = error;
+    
   
     rightMotorSpeed = baseSpeed + motorSpeed;
     leftMotorSpeed = baseSpeed - motorSpeed;
@@ -242,6 +244,7 @@ int getSensorValue(){
     return (leftEye + rightEye);
   else
     return (leftEye - rightEye); //Buggy is positioned with both eyes on white
+  //Might be worth adding if (error > X) baseSpeed = corneringSpeed;
 
   /*Explanation:
    * In theory (leftEye - rightEye) should work for binary situations where one eye sees white and the other sees black.
