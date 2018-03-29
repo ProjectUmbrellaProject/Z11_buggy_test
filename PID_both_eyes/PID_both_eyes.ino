@@ -15,17 +15,18 @@ String inputString = "";
 bool stringComplete, start;
 
 //PID variables
-float K_p = 0.25, K_d = 1, K_i = 0.0, setPoint = 0; //K_p < K_d the derivative term must be large to have a significant influence
-int maxMotorSpeed = 255, baseSpeed = 240, corneringSpeed = 230;
+float K_p = 0.40, K_d = 10, K_i = 0.0, setPoint = 0; //K_p < K_d the derivative term must be large to have a significant influence
+int maxMotorSpeed = 255, baseSpeed = 170, corneringSpeed = 230;
 int rightMotorSpeed;
 int leftMotorSpeed;
 int previousError;
 int integral;
 
 unsigned long previousPingTime;
-const short pingInterval = 400;
+const short pingInterval = 200;
 const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
 bool objectDetected;
+bool startCommand;
 
 //Pixy variables
 Pixy pixy;
@@ -63,6 +64,7 @@ void setup() {
   Serial.println("Buggy: Setup Complete.");
   stringComplete = false;
   start = false;
+  startCommand = false;
 
 }
 
@@ -75,32 +77,36 @@ void loop() {
     stringComplete = false;
   }
 
-  //Basic start/stop commands
-  if (start){
-   // int eyeOutput = analogRead(leftEyePin) - analogRead(rightEyePin);// This should produce a minimum of -1000 and a max of 1000
+  unsigned long currentTime = millis(); //Update the time variable with the current time
+  if (currentTime - previousPingTime >= pingInterval){
 
-    int error = setPoint - getSensorValue(); //Setpoint = 0 because the getSensorValue() function already returns values ~= 0 when there is very little error
-    integral += error;
-    int motorSpeed = K_p * error + K_i * integral + K_d * (error - previousError);
-    previousError = error;
-    
-  
-    rightMotorSpeed = baseSpeed + motorSpeed;
-    leftMotorSpeed = baseSpeed - motorSpeed;
-
-    unsigned long currentTime = millis(); //Update the time variable with the current time
-    if (currentTime - previousPingTime >= pingInterval){
-
-      Serial.print("left: ");
+      /*Serial.print("left: ");
       Serial.print(leftMotorSpeed);
       Serial.print(" right: ");
       Serial.println(rightMotorSpeed);
+      */
       previousPingTime = currentTime; 
       handleObjectDetection();
 
       for (int i = 0; i < 4; i ++)
         detections[i] = 0; //The camera detections are reset every 200ms
     }
+
+
+  //Basic start/stop commands
+  if (start){
+   // int eyeOutput = analogRead(leftEyePin) - analogRead(rightEyePin);// This should produce a minimum of -1000 and a max of 1000
+
+    int error = -getSensorValue(); //Setpoint = 0 because the getSensorValue() function already returns values ~= 0 when there is very little error
+    integral += error;
+    //int motorSpeed = K_p * error + K_i * integral + K_d * (error - previousError);
+    int motorSpeed = K_p * error + K_d * (error - previousError);
+    previousError = error;
+    
+  
+    rightMotorSpeed = baseSpeed + motorSpeed;
+    leftMotorSpeed = baseSpeed - motorSpeed;
+
 
     //Constrain motors to a range of output between 0 and maxMotorSpeed
     if (rightMotorSpeed > maxMotorSpeed)
@@ -149,16 +155,17 @@ void handleObjectDetection(){
 
     //The command to stop should only be called if the control program has told the buggy to move and an object hasnt already been detected
     //i.e. the buggy isnt already stationary
-    if (!objectDetected && distance <= minimumDistance && start){
+    if (!objectDetected && distance <= minimumDistance && startCommand){
       
       objectDetected = true; //The objectDetected boolean prevents the if statement from being repeatedly executed while the object is still present
       moveCommand("/0 ");
+      startCommand = true;
      // forward = true; //Calling move command 0 also sets forward to false which is unintended in this case
       Serial.print("~6 ");
       Serial.println(distance);
 
     }
-    else if (objectDetected && distance > minimumDistance && start){
+    else if (objectDetected && distance > minimumDistance && startCommand){
         objectDetected = false;
         moveCommand("/1 ");
     }
@@ -194,32 +201,38 @@ void moveCommand(String command){
   switch (commandNum){
     case 0:
       start = false;
+      startCommand = false;
       Serial.println("~10");
     break;
     
     case 1:
      start = true;
+     startCommand = true;
      Serial.println("~9 ");
     break;
 
     case 2:
-      baseSpeed = (command.substring(4)).toInt();
+      baseSpeed = (command.substring(3)).toInt();
       Serial.println("~7 ");
+      Serial.println((command.substring(3)).toInt());
     break;
 
     case 3:
-      corneringSpeed = (command.substring(4)).toInt();
+      corneringSpeed = (command.substring(3)).toInt();
       Serial.println("~7 ");
+      Serial.println((command.substring(3)).toInt());
     break;
 
     case 4:
-      K_p = (command.substring(4)).toFloat();
+      K_p = (command.substring(3)).toFloat();
       Serial.println("~7 ");
+      Serial.println((command.substring(3)).toFloat());
     break;
 
     case 5:
-      K_d = (command.substring(4)).toFloat();
+      K_d = (command.substring(3)).toFloat();
       Serial.println("~7 ");
+      Serial.println((command.substring(3)).toFloat());
     break;
 
     default:
@@ -230,22 +243,25 @@ void moveCommand(String command){
 }
 
 int getSensorValue(){
-  int rightEye = analogRead(leftEyePin);
-  int leftEye = analogRead(rightEyePin);
+  int rightEye = analogRead(rightEyePin);
+  int leftEye = analogRead(leftEyePin);
+  int error;
 
-  if (leftEye > 950 && rightEye > 950){//if both eyes see black the buggy is no longer following the line. Should probably do something more sophisticated here
+ /*  if (leftEye > 950 && rightEye > 950){//if both eyes see black the buggy is no longer following the line. Should probably do something more sophisticated here
     start = false;
 
     return 0; //Bad practice to have a condition that leads to nothing being returned
   }
-  else if (leftEye <= 950 && rightEye >= 950) //Buggy is positioned with the left eye on the edge of white and the right on black
-    return -(leftEye + rightEye);
-  else if (leftEye >= 950 && rightEye <= 950) //Buggy is positioned with the right eye on the edge of white and the left on black
-    return (leftEye + rightEye);
+  else*/ if (leftEye <= 800 && rightEye >= 800) //Buggy is positioned with the left eye on the edge of white and the right on black
+    error = -(leftEye + rightEye);
+  else if (leftEye >= 800 && rightEye <= 800) //Buggy is positioned with the right eye on the edge of white and the left on black
+    error = (leftEye + rightEye);
   else
-    return (leftEye - rightEye); //Buggy is positioned with both eyes on white
+    error = (leftEye - rightEye); //Buggy is positioned with both eyes on white
   //Might be worth adding if (error > X) baseSpeed = corneringSpeed;
 
+  //if (error < 50 && error > -50)
+  //  error = 0;
   /*Explanation:
    * In theory (leftEye - rightEye) should work for binary situations where one eye sees white and the other sees black.
    * E.g: leftEye = 30, rightEye = 1030, => output = -1000
@@ -254,6 +270,7 @@ int getSensorValue(){
    * E.g: leftEye = 530, rigtEye = 1030, => output = -500, Even thought the positioning is worse
    * The if statements above fix this by changing the output to 1560 for the example above.
    */
+   return error;
  
 }
 

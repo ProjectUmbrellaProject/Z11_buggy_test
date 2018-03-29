@@ -35,7 +35,7 @@ void setup(){
   cp5.addSlider("P Gain")
    .setPosition(225,450)
    .setSize(200,20)
-   .setRange(0.001,1)
+   .setRange(0.0001,1)
    .setValue(0.25)
    .setTriggerEvent(Slider.RELEASE)
    ;
@@ -45,7 +45,7 @@ void setup(){
   cp5.addSlider("D Gain")
    .setPosition(225,520)
    .setSize(200,20)
-   .setRange(0.01,10)
+   .setRange(0.01,500)
    .setValue(1)
    .setTriggerEvent(Slider.RELEASE)
    ;
@@ -124,12 +124,14 @@ void serialEvent(Serial p){
    
    //If the string starts with ~ it contains useful information
    if (receivedString.charAt(0) == '~'){
-       printCommandInformation(receivedString);
-       commandInterpreter(receivedString);          
+       //printCommandInformation(receivedString);
+       commandInterpreter(receivedString);      
+       print(receivedString);
    }
    else{
      print(receivedString);
-     consoleArea.append(receivedString + "\n");
+     if (millis() > 3000)
+       consoleArea.append(receivedString + "\n");
    }
    counter++; //During the initial startup the serial event callback will be called 9 times. The counter allows these calls to be ignored
 
@@ -150,13 +152,7 @@ void commandInterpreter(String command){
           moving = false;
           
         break;
-        
-        //7: Gantry XX detected
-        case "7":
-          currentDetection = Integer.valueOf((command.substring(3)).trim());     
-          
-        break;
-        
+
         //8: Motor power set to XX
         case "8":
           currentMotorValue = Integer.valueOf((command.substring(3)).trim());
@@ -221,12 +217,12 @@ public void controlEvent(ControlEvent theEvent){
          pressedToggle = true;
                      
         if (controlToggle){ 
-         port.write("1 \n");
+         port.write("/1 \n");
 
         }
           
         else{
-         port.write("0 \n");
+         port.write("/0 \n");
         }
         
          controlToggle = !controlToggle;
@@ -241,7 +237,7 @@ public void controlEvent(ControlEvent theEvent){
       
       case "D Gain":
         float dGain = theEvent.getController().getValue();
-        port.write("\5 " + nf(dGain, 2, 3) + "\n");
+        port.write("/5 " + nf(dGain, 2, 3) + "\n");
         println(nf(dGain, 2, 3));
       break;
       
