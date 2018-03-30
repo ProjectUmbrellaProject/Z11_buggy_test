@@ -11,6 +11,9 @@ ControlP5 cp5;
 Textarea consoleArea;
 int lineCount = 0;
 
+float pGain, dGain;
+int baseSpeed, corneringSpeed;
+
 void setup(){
   frameRate(60);
   size(900, 720);
@@ -25,6 +28,14 @@ void setup(){
   
   motorOutput = new Meter(this, 462, int(pixelHeight*0.64), true);
   
+  String settings[] = loadStrings("values.txt");
+  println(settings[2]);
+  pGain = Float.valueOf(settings[0].substring(2));
+  dGain = Float.valueOf(settings[1].substring(2));
+  baseSpeed = Integer.valueOf(settings[2].substring(10).trim());
+  corneringSpeed = Integer.valueOf(settings[3].substring(15).trim());
+ 
+  
   PImage[] imgs = {loadImage("Assets/go.png"),loadImage("Assets/stop.png")};
   cp5.addToggle("controlToggle")
   .setValue(false)
@@ -35,8 +46,8 @@ void setup(){
   cp5.addSlider("P Gain")
    .setPosition(225,450)
    .setSize(200,20)
-   .setRange(0.0001,1)
-   .setValue(0.25)
+   .setRange(0,40)
+   .setValue(pGain)
    .setTriggerEvent(Slider.RELEASE)
    ;
   cp5.getController("P Gain").getCaptionLabel().setColor(color(75));
@@ -45,8 +56,8 @@ void setup(){
   cp5.addSlider("D Gain")
    .setPosition(225,520)
    .setSize(200,20)
-   .setRange(0.01,500)
-   .setValue(1)
+   .setRange(0,500)
+   .setValue(dGain)
    .setTriggerEvent(Slider.RELEASE)
    ;
   cp5.getController("D Gain").getCaptionLabel().setColor(color(75));
@@ -56,7 +67,7 @@ void setup(){
    .setPosition(225,590)
    .setSize(200,20)
    .setRange(0,255)
-   .setValue(240)
+   .setValue(baseSpeed)
    .setTriggerEvent(Slider.RELEASE)
    ;
   cp5.getController("Base Speed").getCaptionLabel().setColor(color(75));
@@ -66,7 +77,7 @@ void setup(){
    .setPosition(225,660)
    .setSize(200,20)
    .setRange(0,255)
-   .setValue(230)
+   .setValue(corneringSpeed)
    .setTriggerEvent(Slider.RELEASE)
    ;
   cp5.getController("Cornering Speed").getCaptionLabel().setColor(color(75));
@@ -127,9 +138,18 @@ void serialEvent(Serial p){
        //printCommandInformation(receivedString);
        commandInterpreter(receivedString);      
        print(receivedString);
+       
    }
    else{
      print(receivedString);
+     if ((receivedString.trim()).equals("Buggy: Setup Complete.")){
+         port.write("/4 " + nf(pGain, 1, 4) + "\n");
+         port.write("/5 " + nf(dGain, 2, 3) + "\n");                                   
+         port.write("/2 " + baseSpeed + "\n");
+         port.write("/3 " + corneringSpeed + "\n");
+     }
+
+     
      if (millis() > 3000)
        consoleArea.append(receivedString + "\n");
    }
@@ -229,20 +249,20 @@ public void controlEvent(ControlEvent theEvent){
       
         break;
       case "P Gain":
-        float pGain = theEvent.getController().getValue();
+        pGain = theEvent.getController().getValue();
         port.write("/4 " + nf(pGain, 1, 4) + "\n");
         println(nf(pGain, 1, 4));
         
       break;
       
       case "D Gain":
-        float dGain = theEvent.getController().getValue();
+        dGain = theEvent.getController().getValue();
         port.write("/5 " + nf(dGain, 2, 3) + "\n");
         println(nf(dGain, 2, 3));
       break;
       
       case "Base Speed":
-        int baseSpeed = floor(theEvent.getController().getValue());
+        baseSpeed = floor(theEvent.getController().getValue());
         port.write("/2 " + baseSpeed + "\n");
         println(baseSpeed);
       
@@ -250,7 +270,7 @@ public void controlEvent(ControlEvent theEvent){
       
       
       case "Cornering Speed":
-        int corneringSpeed = floor(theEvent.getController().getValue());
+        corneringSpeed = floor(theEvent.getController().getValue());
         port.write("/3 " + corneringSpeed + "\n");
         println(corneringSpeed);
         
@@ -323,4 +343,10 @@ void printCommandInformation(String command){
 
   }
   
+}
+
+void exit(){
+  String PIDValues[] = {"P " + pGain, "D " + dGain, "Base Speed " + baseSpeed, "Cornering speed " + corneringSpeed};
+  saveStrings("values.txt",  PIDValues);
+  super.exit();
 }

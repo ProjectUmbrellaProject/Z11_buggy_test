@@ -3,22 +3,24 @@
 #define leftMotorSpeedPin 5
 #define rightMotorSpeedPin 6
 #define rightMotorDirection 7
-#define eyePin 5 //must be the right eye
+#define leftEyePin 5
+#define rightEyePin 0
 #define echoPin 8
 #define trigPin 9
 
 String inputString = "";
-bool stringComplete, start;
+bool stringComplete, start, startCommand;
 
 //PID variables
-const float K_d = 1, K_p = 0.5, setPoint = 510; //K_p < K_d the derivative term must be large to have a significant influence
-int maxMotorSpeed = 255, baseSpeed = 240;
+//Setpoint must be half of black value
+float K_d = 1, K_p = 0.5, setPoint = 500; //K_p < K_d the derivative term must be large to have a significant influence
+int maxMotorSpeed = 255, baseSpeed = 255, corneringSpeed = 230;
 int rightMotorSpeed;
 int leftMotorSpeed;
 int previousError;
 
 unsigned long previousPingTime;
-const short pingInterval = 400;
+const short pingInterval = 200;
 const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
 bool objectDetected;
 
@@ -32,7 +34,8 @@ void setup() {
   pinMode(rightMotorDirection, OUTPUT);
   pinMode(rightMotorSpeedPin, OUTPUT);
   pinMode(speedPin, OUTPUT);
-  pinMode(eyePin, INPUT);
+  pinMode(leftEyePin, INPUT);
+  pinMode(rightEyePin, INPUT);
   
   digitalWrite(speedPin, HIGH);
   analogWrite(rightMotorSpeedPin, 0);
@@ -55,26 +58,24 @@ void setup() {
 }
 
 void loop() {
- 
-  if (stringComplete){
-    int command = inputString.toInt();
-    
-      if (command == 0){
-        start = false;
-        Serial.println("~10");
-      }
-      else if (command == 1){
-        start = true;
-        Serial.println("~10");
-      }
 
+  unsigned long currentTime = millis(); //Update the time variable with the current time
+  if (currentTime - previousPingTime >= pingInterval){
+    previousPingTime = currentTime; 
+        
+    handleObjectDetection();
+  }
+
+  if (stringComplete){
+    moveCommand(inputString);
+    
     inputString = "";
     stringComplete = false;
   }
 
   //Basic start/stop commands
   if (start){
-    int eyeOutput = analogRead(eyePin);
+    int eyeOutput = readSensors();
 
     int error = eyeOutput - setPoint;
   
@@ -84,17 +85,6 @@ void loop() {
     rightMotorSpeed = baseSpeed + motorSpeed;
     leftMotorSpeed = baseSpeed - motorSpeed;
 
-    unsigned long currentTime = millis(); //Update the time variable with the current time
-    if (currentTime - previousPingTime >= pingInterval){
-
-      Serial.print("left: ");
-      Serial.print(leftMotorSpeed);
-      Serial.print(" right: ");
-      Serial.println(rightMotorSpeed);
-      previousPingTime = currentTime; 
-          
-      handleObjectDetection();
-    }
 
     //Constrain motors to a range of output between 0 and maxMotorSpeed
     if (rightMotorSpeed > maxMotorSpeed)
@@ -137,23 +127,39 @@ void serialEvent() {
   }
 }
 
+int readSensors(){
+  int rightEye = analogRead(rightEyePin);
+  int leftEye = analogRead(leftEyePin);
+  int output;
+  //Negative on the right, positive on the left
+  
+  if (leftEye < 100){
+    output = rightEye; 
+  }
+  else //If the buggy moves enough for the right eye to pass beyond white then the error should still be treated as
+  //if the right eye is seeing white
+    output = 35;
+
+  
+}
 void handleObjectDetection(){
     long distance = obstacleDistance();
 
     //The command to stop should only be called if the control program has told the buggy to move and an object hasnt already been detected
     //i.e. the buggy isnt already stationary
-    if (!objectDetected && distance <= minimumDistance && start){
+    if (!objectDetected && distance <= minimumDistance && startCommand){
       
       objectDetected = true; //The objectDetected boolean prevents the if statement from being repeatedly executed while the object is still present
-      moveCommand(0);
+      moveCommand("/0 ");
+      startCommand = true;
      // forward = true; //Calling move command 0 also sets forward to false which is unintended in this case
       Serial.print("~6 ");
       Serial.println(distance);
 
     }
-    else if (objectDetected && distance > minimumDistance && start){
+    else if (objectDetected && distance > minimumDistance && startCommand){
         objectDetected = false;
-        moveCommand(1);
+        moveCommand("/1 ");
     }
 }
 
@@ -181,16 +187,50 @@ long obstacleDistance(){
   
 }
 
-void moveCommand(int command){
+void moveCommand(String command){
+  int commandNum = (command.substring(1, 3)).toInt();
 
-  if (command == 1){
-    start = true;
+  switch (commandNum){
+    case 0:
+      start = false;
+      startCommand = false;
+      Serial.println("~10");
+    break;
+    
+    case 1:
+     start = true;
+     startCommand = true;
+     Serial.println("~9 ");
+    break;
 
+    case 2:
+      baseSpeed = (command.substring(3)).toInt();
+      Serial.println("~7 ");
+      Serial.println((command.substring(3)).toInt());
+    break;
+
+    case 3:
+      corneringSpeed = (command.substring(3)).toInt();
+      Serial.println("~7 ");
+      Serial.println((command.substring(3)).toInt());
+    break;
+
+    case 4:
+      K_p = (command.substring(3)).toFloat();
+      Serial.println("~7 ");
+      Serial.println((command.substring(3)).toFloat());
+    break;
+
+    case 5:
+      K_d = (command.substring(3)).toFloat();
+      Serial.println("~7 ");
+      Serial.println((command.substring(3)).toFloat());
+    break;
+
+    default:
+      Serial.println("~20");
+    break;
   }
-  else if (command == 0)
-    start = false;
-
-
 
 }
 

@@ -60,28 +60,38 @@ void serialEvent() {
 
 
 int getSensorValue(){
-  int leftEye = analogRead(leftEyePin);
-  int rightEye = analogRead(rightEyePin);
+  int leftEye = floor(analogRead(leftEyePin) / 50);
+  int rightEye = floor(analogRead(rightEyePin) / 50);
 
   Serial.println(leftEye);
   Serial.println(rightEye);
   Serial.print("\n");
 
-int error;
+  int error;
 
  /*  if (leftEye > 950 && rightEye > 950){//if both eyes see black the buggy is no longer following the line. Should probably do something more sophisticated here
     start = false;
 
     return 0; //Bad practice to have a condition that leads to nothing being returned
   }
-  else*/ if (leftEye <= 850 && rightEye >= 850) //Buggy is positioned with the left eye on the edge of white and the right on black
+  else*/if (leftEye <= 650/50 && rightEye >= 650/50) //Buggy is positioned with the left eye on the edge of white and the right on black
     error = -(leftEye + rightEye);
-  else if (leftEye >= 850 && rightEye <= 850) //Buggy is positioned with the right eye on the edge of white and the left on black
+  else if (leftEye >= 650/50 && rightEye <= 650/50) //Buggy is positioned with the right eye on the edge of white and the left on black
     error = (leftEye + rightEye);
   else
-    error = (leftEye - rightEye); //Buggy is positioned with both eyes on white
+    error = (leftEye - rightEye);//Buggy is positioned with both eyes on white
   //Might be worth adding if (error > X) baseSpeed = corneringSpeed;
-
+  
+ /* if (leftEye > 50 || rightEye > 50{
+    if (leftEye > rightEye)
+      error = leftEye;
+    else
+      error = -rightEye;
+    
+  }
+  else
+    error = 0;
+*/
   //if (error < 50 && error > -50)
   //  error = 0;
   /*Explanation:

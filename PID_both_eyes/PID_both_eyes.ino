@@ -15,7 +15,9 @@ String inputString = "";
 bool stringComplete, start;
 
 //PID variables
-float K_p = 0.40, K_d = 10, K_i = 0.0, setPoint = 0; //K_p < K_d the derivative term must be large to have a significant influence
+
+float black = 700, white = 35;
+float K_p = 0.40, K_d = 10, K_i = 0.001, setPoint = 0, setPoint2 = black + white; //K_p < K_d the derivative term must be large to have a significant influence
 int maxMotorSpeed = 255, baseSpeed = 170, corneringSpeed = 230;
 int rightMotorSpeed;
 int leftMotorSpeed;
@@ -45,7 +47,6 @@ void setup() {
   pinMode(leftEyePin, INPUT);
   pinMode(rightEyePin, INPUT);
   
-  
   digitalWrite(speedPin, HIGH);
   analogWrite(rightMotorSpeedPin, 0);
   analogWrite(rightMotorDirection, 0);
@@ -65,6 +66,7 @@ void setup() {
   stringComplete = false;
   start = false;
   startCommand = false;
+  integral = 0;
 
 }
 
@@ -88,8 +90,6 @@ void loop() {
       previousPingTime = currentTime; 
       handleObjectDetection();
 
-      for (int i = 0; i < 4; i ++)
-        detections[i] = 0; //The camera detections are reset every 200ms
     }
 
 
@@ -247,31 +247,67 @@ int getSensorValue(){
   int leftEye = analogRead(leftEyePin);
   int error;
 
- /*  if (leftEye > 950 && rightEye > 950){//if both eyes see black the buggy is no longer following the line. Should probably do something more sophisticated here
+  /*
+
+   if (leftEye > 950 && rightEye > 950){//if both eyes see black the buggy is no longer following the line. Should probably do something more sophisticated here
     start = false;
 
     return 0; //Bad practice to have a condition that leads to nothing being returned
   }
-  else*/ if (leftEye <= 800 && rightEye >= 800) //Buggy is positioned with the left eye on the edge of white and the right on black
+  else*/ if (leftEye <= 650 && rightEye >= 650) //Buggy is positioned with the left eye on the edge of white and the right on black
     error = -(leftEye + rightEye);
-  else if (leftEye >= 800 && rightEye <= 800) //Buggy is positioned with the right eye on the edge of white and the left on black
+  else if (leftEye >= 650 && rightEye <= 650) //Buggy is positioned with the right eye on the edge of white and the left on black
     error = (leftEye + rightEye);
   else
     error = (leftEye - rightEye); //Buggy is positioned with both eyes on white
   //Might be worth adding if (error > X) baseSpeed = corneringSpeed;
-
+  /*
   //if (error < 50 && error > -50)
   //  error = 0;
-  /*Explanation:
+  Explanation:
    * In theory (leftEye - rightEye) should work for binary situations where one eye sees white and the other sees black.
    * E.g: leftEye = 30, rightEye = 1030, => output = -1000
    * However, when the buggy drifts further and one of the eyes is above the edge of white and the other is on black this approach fails because
    * the error now decreases instead of increasing.
    * E.g: leftEye = 530, rigtEye = 1030, => output = -500, Even thought the positioning is worse
    * The if statements above fix this by changing the output to 1560 for the example above.
-   */
+   
+
+   if (leftEye > 50 || rightEye > 50){
+    if (leftEye > rightEye)
+      error = leftEye;
+    else
+      error = -rightEye;
+    
+  }
+  else
+    error = 0;
+    */
    return error;
  
+}
+
+int getSensorValue2(){
+  int rightEye = analogRead(rightEyePin);
+  int leftEye = analogRead(leftEyePin);
+  int output;
+  //Negative on the right, positive on the left
+  
+  if (leftEye < 500 && rightEye > 500){ //Ideal case: left on white, right on black, or left on edge of white/black, right on black
+    output = leftEye + rightEye; 
+  }
+  else if (leftEye < 500 && rightEye < 500) //left on black, right on white
+    output = leftEye + rightEye;
+
+  else if (leftEye > 500 && rightEye < 500) //left on black, right on the edge of white/black
+    //output = -leftEye + rightEye;
+    output = 0;
+
+    //this wont work because output doesnt have equal range on both sides
+
+
+  
+ return (setPoint2 - output);
 }
 
 void detectSigns(){ 
