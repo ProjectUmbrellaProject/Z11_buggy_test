@@ -46,7 +46,7 @@ void setup(){
   cp5.addSlider("P Gain")
    .setPosition(225,450)
    .setSize(200,20)
-   .setRange(0,10)
+   .setRange(0,2)
    .setValue(pGain) //Setting the initial value of the slider to be the same as the current global variable
    .setTriggerEvent(Slider.RELEASE); //Setting the slider callback to occur only when the slider is released
   cp5.getController("P Gain").getCaptionLabel().setColor(color(75)); //Setting the colour of the caption to greyscale value 75
@@ -66,7 +66,7 @@ void setup(){
   cp5.addSlider("D Gain")
    .setPosition(225,590)
    .setSize(200,20)
-   .setRange(0,50)
+   .setRange(0,30)
    .setValue(dGain) //Setting the initial value of the slider to be the same as the current global variable
    .setTriggerEvent(Slider.RELEASE);
   cp5.getController("D Gain").getCaptionLabel().setColor(color(75));
@@ -135,10 +135,10 @@ void serialEvent(Serial p){
    
    //If the string starts with ~ it contains useful information
    if (receivedString.charAt(0) == '~'){
-       //printCommandInformation(receivedString);
+       printCommandInformation(receivedString);
        //Pass the information to other functions to be analysed and eventually inform the user
        commandInterpreter(receivedString);      
-       print(receivedString);
+       //print(receivedString);
    }
    else{
      print(receivedString);
@@ -224,20 +224,24 @@ public void controlEvent(ControlEvent theEvent){
       case "P Gain":
         pGain = theEvent.getController().getValue();
         port.write("/4 " + nf(pGain, 1, 4) + "\n"); //Send a command to update the p gain on the buggy
-        println(nf(pGain, 1, 4));
+        println("P Gain set to: " + nf(pGain, 1, 4));
+        consoleArea.append("P Gain set to: " + nf(pGain, 1, 4) + "\n");
         
       break;
       
       case "D Gain":
         dGain = theEvent.getController().getValue();
         port.write("/5 " + nf(dGain, 6, 3) + "\n"); //Send a command to update the d gain on the buggy
-        println(nf(dGain, 6 , 3));
+        println("D Gain set to: " + nf(dGain, 6 , 3));
+        consoleArea.append("D Gain set to: " + nf(dGain, 6 , 3) + "\n");
+        
       break;
       
       case "Base Speed":
         baseSpeed = floor(theEvent.getController().getValue());
         port.write("/2 " + baseSpeed + "\n"); //Send a command to update the base speed on the buggy
-        println(baseSpeed);
+        println("Base Speed set to: " + baseSpeed);
+        consoleArea.append("Base Speed set to: " + baseSpeed + "\n");
       
       break;
       
@@ -245,8 +249,8 @@ public void controlEvent(ControlEvent theEvent){
       case "I Gain":
         iGain = theEvent.getController().getValue();
         port.write("/3 " + nf(iGain, 1, 4) + "\n"); //Send a command to update the i gain on the buggy
-        println(nf(pGain, 1, 4));
-        
+        println("I Gain set to: " + nf(iGain, 1, 4));
+        consoleArea.append("I Gain set to: " + nf(iGain, 1, 4) + "\n");
         
       break;
 
@@ -277,6 +281,8 @@ void keyPressed(){
 //This functionality could be integrated in the commandInterpreter function, however, writing this as a seperate function allows its use to be toggled on and off by
 //commenting out line 135. This can be useful when debugging new features.
 void printCommandInformation(String command){
+    print("Buggy: ");
+    
   switch (command.substring(1, 3).trim()){
     case "6":
       println("Obstacle detected at " + command.substring(3).trim() + " cm");
