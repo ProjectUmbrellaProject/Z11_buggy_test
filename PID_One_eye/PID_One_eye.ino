@@ -1,9 +1,9 @@
 //Defining all the pins used
 #define speedPin 3
-#define leftMotorDirection 4
-#define leftMotorSpeedPin 5
-#define rightMotorSpeedPin 6
-#define rightMotorDirection 7
+#define leftMotorMinus 4
+#define leftMotorPlus 5
+#define rightMotorPlus 6
+#define rightMotorMinus 7
 #define leftEyePin 5
 #define rightEyePin 0
 #define echoPin 8
@@ -15,17 +15,19 @@ bool stringComplete, start, startCommand;
 
 //PID variables
 //Setpoint must be half of black value
-float K_d = 1, K_i = 0.0, K_p = 0.5, setPoint = 500; //K_p < K_d the derivative term must be large to have a significant influence
+float K_d = 19, K_i = 0.0, K_p = 0.75, setPoint = 400; //K_p < K_d the derivative term must be large to have a significant influence
 int maxMotorSpeed = 255, baseSpeed = 255;
 int rightMotorSpeed;
 int leftMotorSpeed;
 int previousError;
 int integral;
+  int difference ;
 
 //Variables used for object detection
 unsigned long previousPingTime;
+unsigned long previousTime;
 const short pingInterval = 200;
-const short minimumDistance = 15; //Determines how close an object must be to stop the buggy
+const short minimumDistance = 10; //Determines how close an object must be to stop the buggy
 bool objectDetected;
 
 
@@ -36,18 +38,18 @@ void setup() {
   pinMode(leftEyePin, INPUT);
   pinMode(rightEyePin, INPUT);
   pinMode(trigPin, OUTPUT);
-  pinMode(leftMotorDirection, OUTPUT);
-  pinMode(leftMotorSpeedPin, OUTPUT);
-  pinMode(rightMotorDirection, OUTPUT);
-  pinMode(rightMotorSpeedPin, OUTPUT);
+  pinMode(leftMotorMinus, OUTPUT);
+  pinMode(leftMotorPlus, OUTPUT);
+  pinMode(rightMotorMinus, OUTPUT);
+  pinMode(rightMotorPlus, OUTPUT);
   pinMode(speedPin, OUTPUT);
 
   //Writing to the motor pins the buggy is stationary
-  digitalWrite(speedPin, HIGH);
-  analogWrite(rightMotorSpeedPin, 0);
-  analogWrite(rightMotorDirection, 0);
-  analogWrite(leftMotorDirection, 0);
-  analogWrite(leftMotorSpeedPin, 0);
+  analogWrite(speedPin, 0);
+  analogWrite(rightMotorPlus, 0);
+  analogWrite(rightMotorMinus, 0);
+  analogWrite(leftMotorMinus, 0);
+  analogWrite(leftMotorPlus, 0);
 
   //Establishing the Xbee connection and running the AT commands
   Serial.begin(9600); 
@@ -65,56 +67,88 @@ void setup() {
   stringComplete = false;
   start = false;
   integral = 0;
+  previousTime = millis();
 }
 
 void loop() {
 
-  unsigned long currentTime = millis(); //Update the time variable with the current time
+   
+  if (stringComplete){
+    moveCommand(inputString);
+    
+    inputString = "";
+    stringComplete = false;
+  }
+
+  unsigned long currentTime2 = millis(); //Update the time variable with the current time
   //Data from the ultrasonic sensor is read periodically, where the period between readings is defined by pingInterval
-  if (currentTime - previousPingTime >= pingInterval){
-    previousPingTime = currentTime; 
+  if (currentTime2 - previousPingTime >= pingInterval){
+    previousPingTime = currentTime2; 
         
     handleObjectDetection();
+
   }
 
   //If the flag to start has been set to true by the command function then begin PID control
   if (start){
     int eyeOutput = readSensors();
-
+    unsigned long currentTime = 1;
     int error = eyeOutput - setPoint; //The setpoint is the reading we are aiming to achieve
-    integral += error; //Add the error to the integral
-  
-    int motorDifference = K_p * error + K_i * integral + K_d * (error - previousError); //Update the motor speed in proportion to the current error, and approximate rate of change of error
+    integral += error * (currentTime - previousTime); //Add the error to the integral
+    bool leftReverse = false, rightReverse = false;
+    
+    
+    //difference = (currentTime - previousTime);
+    difference = 1;
+    int motorDifference = K_p * error + K_i * integral + K_d * ((error - previousError)/difference); //Update the motor speed in proportion to the current error, and approximate rate of change of error
     previousError = error; //Storing the current error for the next loop
+    //previousTime = currentTime;
 
     //Updating the motor speeds using the new motor speed
     rightMotorSpeed = baseSpeed + motorDifference;
     leftMotorSpeed = baseSpeed - motorDifference;
+ 
+    if (rightMotorSpeed < 0){ //Consider changing this to run the motor in reverse instead
+      rightMotorSpeed = -rightMotorSpeed;
+      digitalWrite(rightMotorMinus, HIGH);
+    }
+    else
+      digitalWrite(rightMotorMinus, LOW);
 
-
+    if (leftMotorSpeed < 0){
+      digitalWrite(leftMotorMinus, HIGH);
+     leftMotorSpeed = -leftMotorSpeed;
+    }
+    else 
+      digitalWrite(leftMotorMinus, LOW);
+    
     //Constrain motors to a range of output between 0 and maxMotorSpeed
-    if (rightMotorSpeed > maxMotorSpeed)
+    if (rightMotorSpeed > maxMotorSpeed){
       rightMotorSpeed = maxMotorSpeed;
-    else if (rightMotorSpeed < 0) //Consider changing this to run the motor in reverse instead
+    }
+    else if (rightMotorSpeed < 0)
       rightMotorSpeed = 0;
       
     if (leftMotorSpeed > maxMotorSpeed)
       leftMotorSpeed = maxMotorSpeed;
     else if (leftMotorSpeed < 0)
       leftMotorSpeed = 0;
-  
+
+
+    
     analogWrite(speedPin, 255);
-    digitalWrite(rightMotorDirection, LOW);
-    analogWrite(rightMotorSpeedPin, rightMotorSpeed);
-    digitalWrite(leftMotorDirection, LOW);
-    analogWrite(leftMotorSpeedPin, leftMotorSpeed);
+    analogWrite(leftMotorPlus, leftMotorSpeed);
+    analogWrite(rightMotorPlus, rightMotorSpeed);
+
+
+   
       
   }else{
     //If the command to move has not been received ensure the buggy is stationary
-    analogWrite(rightMotorSpeedPin, 0);
-    analogWrite(rightMotorDirection, 0);
-    analogWrite(leftMotorDirection, 0);
-    analogWrite(leftMotorSpeedPin, 0);
+    analogWrite(rightMotorPlus, 0);
+    analogWrite(rightMotorMinus, 0);
+    analogWrite(leftMotorMinus, 0);
+    analogWrite(leftMotorPlus, 0);
 
   }
 
@@ -130,7 +164,7 @@ void serialEvent() {
 
     //If the character is the endline character then the end of the command has been reached
     if (inChar == '\n') {
-      moveCommand(inputString); //The command can now be passed to the command function to be interpretted
+      stringComplete = true; //The command can now be passed to the command function to be interpretted
     }
   }
 }
@@ -155,9 +189,15 @@ int readSensors(){
   if (leftEye < 100){
     output = rightEye; 
   }
-  else if (leftEye > 500 && rightEye < 500) //If the buggy moves enough for the right eye to pass beyond white then the error should still be treated as if the right eye is seeing white
+  else if (leftEye > 500 && rightEye < 500 && previousError + setPoint < 120) //If the buggy moves enough for the right eye to pass beyond white then the error should still be treated as if the right eye is seeing white
     //This condition is also true if the buggy 
     output = 35;
+
+  else if (previousError + setPoint > 700)
+    output = 1000;
+
+    
+  return output;
 
   
 }
@@ -168,7 +208,7 @@ void handleObjectDetection(){
     //i.e. the buggy isnt already stationary
     //This if statement stops the buggy if: an object has been detected within the range specified by minimumDistance, an object has not already been detected,
     //and the buggy is already moving (it has received the command to move)
-    if (!objectDetected && distance <= minimumDistance && startCommand){
+    if (!objectDetected && (distance <= minimumDistance && distance != 0) && startCommand){
       
       objectDetected = true; //The objectDetected boolean prevents the if statement from being repeatedly executed while the object is still present
       moveCommand("/0 ");
@@ -179,7 +219,7 @@ void handleObjectDetection(){
 
     }
     //If an object was detected but is no longer present then start again
-    else if (objectDetected && distance > minimumDistance && startCommand){
+    else if (objectDetected && (distance > minimumDistance || distance == 0) && startCommand){
         objectDetected = false;
         moveCommand("/1 ");
     }
@@ -199,7 +239,7 @@ long obstacleDistance(){
   digitalWrite(trigPin, LOW);
   
   //Read the time taken for the echo to return
-  duration = pulseIn(echoPin, HIGH);
+  duration = pulseIn(echoPin, HIGH, 2000);
   
   //Calculate the distance using the speed of sound
   distance = round(duration*0.034/2);

@@ -46,7 +46,7 @@ void setup(){
   cp5.addSlider("P Gain")
    .setPosition(225,450)
    .setSize(200,20)
-   .setRange(0,40)
+   .setRange(0,10)
    .setValue(pGain) //Setting the initial value of the slider to be the same as the current global variable
    .setTriggerEvent(Slider.RELEASE); //Setting the slider callback to occur only when the slider is released
   cp5.getController("P Gain").getCaptionLabel().setColor(color(75)); //Setting the colour of the caption to greyscale value 75
@@ -66,7 +66,7 @@ void setup(){
   cp5.addSlider("D Gain")
    .setPosition(225,590)
    .setSize(200,20)
-   .setRange(0,500)
+   .setRange(0,50)
    .setValue(dGain) //Setting the initial value of the slider to be the same as the current global variable
    .setTriggerEvent(Slider.RELEASE);
   cp5.getController("D Gain").getCaptionLabel().setColor(color(75));
@@ -125,7 +125,7 @@ void draw(){
   else if (!moving) //If the buggy is stopped illustrate this on screen
       image(loadImage("Assets/stopped.png"), 0, 410);
   
-    motorOutput.updateMeter(currentMotorValue); //Update the value of the meter with the current motor value (even if it's unchanged)
+    motorOutput.updateMeter(baseSpeed); //Update the value of the meter with the current base speed (even if it's unchanged)
 
 }
 
@@ -146,7 +146,7 @@ void serialEvent(Serial p){
      if ((receivedString.trim()).equals("Buggy: Setup Complete.")){
          port.write("/4 " + nf(pGain, 1, 4) + "\n");
          port.write("/3 " + nf(iGain, 1, 4) + "\n"); 
-         port.write("/5 " + nf(dGain, 2, 3) + "\n");                                   
+         port.write("/5 " + nf(dGain, 6, 3) + "\n");                                   
          port.write("/2 " + baseSpeed + "\n");
      }
 
@@ -213,9 +213,9 @@ public void controlEvent(ControlEvent theEvent){
       
       case "controlToggle":
         if (controlToggle)
-          port.write("1 \n"); //Send the start command
+          port.write("/1 \n"); //Send the start command
         else
-          port.write("0 \n"); //Send the stop command
+          port.write("/0 \n"); //Send the stop command
         
         controlToggle = !controlToggle;
       
@@ -230,8 +230,8 @@ public void controlEvent(ControlEvent theEvent){
       
       case "D Gain":
         dGain = theEvent.getController().getValue();
-        port.write("/5 " + nf(dGain, 2, 3) + "\n"); //Send a command to update the d gain on the buggy
-        println(nf(dGain, 2, 3));
+        port.write("/5 " + nf(dGain, 6, 3) + "\n"); //Send a command to update the d gain on the buggy
+        println(nf(dGain, 6 , 3));
       break;
       
       case "Base Speed":

@@ -1,8 +1,13 @@
-#define speedPIn 3
+#define speedPin 3
 #define leftMotorDirection 4 //H-bridge setup is probably more complex than this.
 #define leftEyePin 5
 #define rightEyePin 0
 #define rightMotorDirection 7
+
+#define leftMotorMinus 4
+#define leftMotorPlus 5
+#define rightMotorPlus 6
+#define rightMotorMinus 7
 String inputString = "";
 bool stringComplete, start;
 
@@ -18,6 +23,11 @@ void setup() {
 
     pinMode(leftEyePin, INPUT);
   pinMode(rightEyePin, INPUT);
+    pinMode(leftMotorMinus, OUTPUT);
+  pinMode(leftMotorPlus, OUTPUT);
+  pinMode(rightMotorMinus, OUTPUT);
+  pinMode(rightMotorPlus, OUTPUT);
+  pinMode(speedPin, OUTPUT);
   
   Serial.begin(9600); // initiate serial commubnication at 9600 baud rate
   Serial.print("+++"); //Enter xbee AT commenad mode, NB no carriage return here
@@ -37,8 +47,14 @@ void loop() {
     unsigned long currentTime = millis(); //Update the time variable with the current time
     if (currentTime - previousPingTime >= pingInterval){
       previousPingTime = currentTime; 
-      Serial.println(getSensorValue());
+      Serial.println(readSensors() - 500);
+      
     }
+    digitalWrite(speedPin, HIGH);
+    digitalWrite(rightMotorPlus, LOW);
+    analogWrite(rightMotorMinus, 255);
+    digitalWrite(leftMotorMinus, LOW);
+    analogWrite(leftMotorPlus, 255);
 
 
 }
@@ -115,4 +131,32 @@ int getSensorValue(){
  
 }
 
+//This function combines the output of the two eyes into a value which can be used to determine the buggy's position
+int readSensors(){
+  //Read and store the current output of both eyes
+  int rightEye = analogRead(rightEyePin);
+  int leftEye = analogRead(leftEyePin);
+  int output;
+  //Negative on the right, positive on the left
+
+  /*This method uses both eyes to determine the position of the buggy but only one eye is used to measure the error.
+   * By using a setpoint which tries to keep the eye on the edge of black and white the 'deadzone' in the measurment is reduced.
+   * Ideally this method should keep the right eye above the edge of the line at all times. This means that any small
+   * movement will result in the eye crossing the line and will have an instantaneous effect on the error. However,
+   * this method is limited because it cannot effectively determine the position of the buggy. By using the second eye to 
+   * verify measuremens fromt first eye, this method is made more reliable.
+   */
+  //If the left eye is above white
+  //Buggy is on the right side of the line
+  if (leftEye < 100){
+    output = rightEye; 
+  }
+  else if (leftEye > 500 && rightEye < 500) //If the buggy moves enough for the right eye to pass beyond white then the error should still be treated as if the right eye is seeing white
+    //This condition is also true if the buggy 
+    output = 35;
+
+  return output;
+
+  
+}
 
