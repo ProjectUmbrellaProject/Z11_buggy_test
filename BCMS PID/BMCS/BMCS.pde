@@ -286,12 +286,12 @@ void printCommandInformation(String command){
   switch (command.substring(1, 3).trim()){
     case "6":
       println("Obstacle detected at " + command.substring(3).trim() + " cm");
-      consoleArea.append("Obstacle detected at " + command.substring(3).trim() + " cm\n");
+      consoleArea.append("Buggy: Obstacle detected at " + command.substring(3).trim() + " cm\n");
     break;
     
     case "7":
       println("Value Updated");
-      consoleArea.append("Value Updated\n");
+      consoleArea.append("Buggy: Value Updated\n");
     break;
     
     case "8":
@@ -300,12 +300,12 @@ void printCommandInformation(String command){
     
     case "9":
       println("Start command received");
-      consoleArea.append("Start command received\n");
+      consoleArea.append("Buggy: Start command received\n");
     break;
     
     case "10":
       println("Stop command received");
-      consoleArea.append("Stop command received\n");
+      consoleArea.append("Buggy: Stop command received\n");
     break;
     
 

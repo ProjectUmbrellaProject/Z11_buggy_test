@@ -1,9 +1,6 @@
-#define speedPin 3
-#define leftMotorDirection 4 //H-bridge setup is probably more complex than this.
-#define leftEyePin 5
-#define rightEyePin 0
-#define rightMotorDirection 7
-
+#define speedPin 3//H-bridge setup is probably more complex than this.
+#define leftEyePin A5
+#define rightEyePin A0
 #define leftMotorMinus 4
 #define leftMotorPlus 5
 #define rightMotorPlus 6
@@ -47,14 +44,34 @@ void loop() {
     unsigned long currentTime = millis(); //Update the time variable with the current time
     if (currentTime - previousPingTime >= pingInterval){
       previousPingTime = currentTime; 
-      Serial.println(readSensors() - 500);
-      
+     // Serial.println(readSensors() - 500);
+        getSensorValue();   
     }
-    digitalWrite(speedPin, HIGH);
-    digitalWrite(rightMotorPlus, LOW);
-    analogWrite(rightMotorMinus, 255);
-    digitalWrite(leftMotorMinus, LOW);
-    analogWrite(leftMotorPlus, 255);
+    analogWrite(speedPin, 255);
+  
+    //digitalWrite(rightMotorPlus, LOW);
+   // analogWrite(rightMotorMinus, 255);
+   // digitalWrite(leftMotorMinus, 255);
+   // analogWrite(leftMotorPlus, HIGH);
+
+      analogWrite(leftMotorMinus, 255);
+      digitalWrite(leftMotorPlus, LOW);
+
+            analogWrite(rightMotorMinus, 255);
+      digitalWrite(rightMotorPlus, LOW);
+
+  /*  bool rightForward = false;
+
+    if (rightForward){
+      digitalWrite(rightMotorMinus, LOW);
+      analogWrite(rightMotorPlus, 255);
+    }
+    else {
+
+      analogWrite(rightMotorMinus, 255);
+      digitalWrite(rightMotorPlus, LOW);
+    }
+    */
 
 
 }
@@ -76,8 +93,8 @@ void serialEvent() {
 
 
 int getSensorValue(){
-  int leftEye = floor(analogRead(leftEyePin) / 50);
-  int rightEye = floor(analogRead(rightEyePin) / 50);
+  int leftEye = floor(analogRead(leftEyePin));
+  int rightEye = floor(analogRead(rightEyePin));
 
   Serial.println(leftEye);
   Serial.println(rightEye);

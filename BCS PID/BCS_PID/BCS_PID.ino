@@ -133,6 +133,7 @@ void loop() {
     //If the command to move has not been received ensure the buggy is stationary
     analogWrite(rightMotorPlus, 0);
     analogWrite(leftMotorPlus, 0);
+    analogWrite(speedPin, 0);
   }
 
 
