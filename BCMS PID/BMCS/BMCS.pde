@@ -135,10 +135,9 @@ void serialEvent(Serial p){
    
    //If the string starts with ~ it contains useful information
    if (receivedString.charAt(0) == '~'){
-       printCommandInformation(receivedString);
        //Pass the information to other functions to be analysed and eventually inform the user
+       printCommandInformation(receivedString);
        commandInterpreter(receivedString);      
-       //print(receivedString);
    }
    else{
      print(receivedString);
